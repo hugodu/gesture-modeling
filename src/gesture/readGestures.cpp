@@ -5,106 +5,148 @@
 #include <iterator>
 #include <cstdlib>
 
-
-#include "touch/Touch.hpp"
-
+#include "touch/Touch.h"
+#include "gesture/models/VectorGestureClassification.h"
+#include "boost/lexical_cast.hpp"
 
 using namespace std;
 
-void Tokenize(const string& str,
-                      vector<string>& tokens,
-                      const string& delimiters = " ")
+void printTransform(vector<vector<double> > transformed)
 {
-    // Skip delimiters at beginning.
-    string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-    // Find first "non-delimiter".
-    string::size_type pos     = str.find_first_of(delimiters, lastPos);
+    cout << "Transformed Size: " << transformed.size() << endl;
 
-    while (string::npos != pos || string::npos != lastPos)
+    for(int i = 0; i < transformed.size(); ++i)
     {
-        // Found a token, add it to the vector.
-        tokens.push_back(str.substr(lastPos, pos - lastPos));
-        // Skip delimiters.  Note the "not_of"
-        lastPos = str.find_first_not_of(delimiters, pos);
-        // Find next "non-delimiter"
-        pos = str.find_first_of(delimiters, lastPos);
+	for (int j = 0; j < transformed.at(i).size(); ++j)
+	    cout << i << ": " << transformed.at(i).at(j) << "\t";
+	cout << endl;
     }
 }
 
-int main(int argc, char *argv[])
+vector<GestureSample> readFile(string fileName)
 {
-  ifstream readFile;
-  
-  cout << "Reading: " << argv[1] << " " << endl;
-  if (argc == 1)
-  {
-      cout << "No Input files" << endl;
-      return 0;
-  }
-  int fileNum = 0;
-  while (fileNum++ < argc)
-  {
-      readFile.open(argv[1]);
-      string line;
-      
-      vector<GestureSample> readSamples;
-  
-      GestureSample sample;
-      ContactSetFrame frame;
-      Contact contact;
+    vector<GestureSample> readSamples;
+    ifstream readFile;
 
-      if (readFile.is_open())
-      {
-	  while(!readFile.eof())
-	  {
-	      vector<string> frames;
-	      sample.clear();
-	      getline(readFile,line);
-	      
-	      
-	      Tokenize(line, frames, "];");
-	      for (int i = 0; i < frames.size(); ++i)
-	      {
-		  string frameStr = frames[i];
-		  int pos = frameStr.find("[");
-		  while(pos >=0)
-		  {
-		      frameStr.replace(pos, 1, "");
-		      pos = frameStr.find("[", pos);
-		  }
-	          //each is a frame
-		  //Num samples = number of tokens / 7;
-		  vector<string> vals;
-		  frame.clear();
-		  
-		  Tokenize(frameStr, vals);
-		  for (int j = 0; j < vals.size(); j+=7)
-		  {
-		      
-		      //each contact
-		      frame.push_back(
-			  Contact(j/7, atof(vals[j].c_str()), atof(vals[j+1].c_str()), //id, x, y
-				  atof(vals[j+2].c_str()), atof(vals[j+3].c_str()),     //dx,dy
-				  atof(vals[j+4].c_str()), atof(vals[j+5].c_str()),     //w,h
-				  atof(vals[j+6].c_str())));                   //pressure
-		      
-		  }
-		  sample.push_back(frame);
-	      }
-	      readSamples.push_back(sample);
-	      
-	      cout << "Num Frames: " << sample.size() << endl;
-	      
-              //ostream_iterator<string> out_it (cout, ", ");
-	      //copy(frames.begin(), frames.end(), out_it);
-	  }
-	  cout << "Total Samples: " << readSamples.size() <<endl;
-	  
-	  readFile.close();
-      }    
-  }
-  
-  return 0;
+    cout << "Reading: " << fileName << " " << endl;
+    readFile.open(fileName.c_str());
+    string line;
+
+
+    if (readFile.is_open())
+    {
+        while(!readFile.eof())
+        {
+            getline(readFile,line);
+            GestureSample sample = GestureSample(line);
+
+            if(sample.size() > 0)
+                readSamples.push_back(sample);
+        }
+        cout << "Num Samples: " << readSamples.size() << endl;
+        readFile.close();
+    }
+    else
+    {
+        cout << "Unable to read file: " << fileName << endl;
+    }
+    return readSamples;
+
+}
+vector<GestureSample> readGestureSet(string gid, string uid)
+{
+  string base = "data/reOrdered/";
+  string fileName = "gid_" + gid + "_uid_" + uid + ".seqs";
+  return readFile(base + fileName);
 }
 
 
+vector<vector<vector<double> > > transformSamples(vector<GestureSample> samples)
+{
+	vector<vector<vector<double> > > transformedSet;
+        cout << "Transforming " << samples.size() << " samples" << endl;
+
+	if (samples.size() > 0)
+	{
+	    for (int i = 0; i < samples.size(); ++i)
+	        transformedSet.push_back(samples.at(i).transform());
+	    // if(transformed.size() > 0)
+	    // 	printTransform(transformed);
+	    // else
+	    // 	cout << "Nothing's transformed" <<endl;
+
+	    //Transformed gesture set obtained.
+	    //Pass to classifier as example set
+	}
+
+	else
+	    cout << "No Samples" << endl;
+
+	return transformedSet;
+
+}
+
+int readFiles(int argc, char *argv[])
+{
+
+
+    char* fileName;
+    int fileNum = 1;
+    cout << "Args: " << argc << endl << endl;
+
+
+    if (argc < 2)
+    {
+	cout << "No Input files. Using ../../data/reOrdered/gid_201_uid_1.seqs" << endl;
+	//return 0;
+	fileName = "../../data/reOrdered/gid_201_uid_1.seqs";
+
+    }
+    else
+    {
+	fileName = argv[fileNum];
+	cout << "Reading : " << fileName;
+    }
+    vector<GestureSample> readSamples;
+    //cout << "0: " << argv[0] << " 1: " << argv[1] << " args" << endl;
+    if (argc == 2)
+    {
+	fileNum++;
+	readSamples = readFile(fileName);
+	vector<vector<vector<double> > > transformedSet = transformSamples(readSamples);
+	cout << "TransformedSet Size: " << transformedSet.size() << endl;
+    }
+    return 0;
+}
+
+
+
+int main(int argc, char *argv[])
+{
+//    return readFiles(argc, argv);
+  VectorGestureClassification classifier;
+  string gidPre = "20";
+  for (int i = 1; i <= 5; ++i)
+  {
+    vector<GestureSample> train = readGestureSet(gidPre + boost::lexical_cast<std::string>(i), "3");
+    vector<vector<vector<double> > > trnsfTrain = transformSamples(train);
+    cout << "Training Gesture " << i << endl;//" with " << trnsfTrain.size() << " samples";
+    for(int k = 0; k < trnsfTrain.size(); k++)
+      printTransform(trnsfTrain[k]);
+    //cout << "Now" << endl;
+    if(!trnsfTrain.empty())
+      classifier.addGestureWithExamples(trnsfTrain, 10);
+  }
+
+  for (int i = 1; i <= 5; ++i)
+  {
+    vector<GestureSample> test = readGestureSet(gidPre + static_cast<char>(i), "2");
+    vector<vector<vector<double> > > transformTest = transformSamples(test);
+    for(int sampleNum = 0; sampleNum < transformTest.size(); sampleNum++)
+    {
+      vector<vector<double> > sample = transformTest.at(sampleNum);
+      int classifiedAs = classifier.classify(sample);
+      cout << "Gesture: " << i << "Sample: " << sampleNum << "\tClassified as: " << classifiedAs;
+    }
+  }
+}
