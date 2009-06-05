@@ -102,7 +102,7 @@ public:
     Contact contact;
     Tokenize(frameStr, vals);
 
-    for (int j = 0; j < vals.size(); j+=NUM_DIMS)
+    for (size_t j = 0; j < vals.size(); j+=NUM_DIMS)
       {
         contact = Contact(j/NUM_DIMS, vals);
         push_back(contact);
@@ -116,7 +116,7 @@ public:
   vector<double> transform()
   {
     vector<double> transformed;
-    for(int i = 0; i < size(); i++)
+    for(size_t i = 0; i < size(); i++)
       {
         transformed.push_back(at(i).x);
         transformed.push_back(at(i).y);
@@ -154,7 +154,7 @@ public:
     //cout << sampleStr << endl << endl << endl;
     //cout << "---------------------------------" << endl << "Frames: " << frames.size() << endl;
 
-    for (int i = 0; i < frames.size(); i++)
+    for (size_t i = 0; i < frames.size(); i++)
       {
         string frameStr = frames[i];
         frame = ContactSetFrame(frameStr);
@@ -184,7 +184,7 @@ public:
   vector<vector<double> > transform()
   {
     vector<vector<double> > transformed;
-    for(int i = 0; i < size(); i++)
+    for(size_t i = 0; i < size(); i++)
       {
         vector<double> tempT  = at(i).transform();
         transformed.push_back(tempT);

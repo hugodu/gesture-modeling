@@ -18,9 +18,9 @@ void printTransform(vector<vector<double> > transformed)
 {
 	cout << "Transformed Size: " << transformed.size() << endl;
 
-	for(int i = 0; i < transformed.size(); ++i)
+	for(size_t i = 0; i < transformed.size(); ++i)
 	{
-		for (int j = 0; j < transformed.at(i).size(); ++j)
+		for (size_t j = 0; j < transformed.at(i).size(); ++j)
 			cout << i << ": " << transformed.at(i).at(j) << "\t";
 		cout << endl;
 	}
@@ -74,7 +74,7 @@ vector<vector<vector<double> > > transformSamples(vector<GestureSample> samples)
 
 	if (samples.size() > 0)
 	{
-		for (int i = 0; i < samples.size(); ++i)
+		for (size_t i = 0; i < samples.size(); ++i)
 			transformedSet.push_back(samples.at(i).transform());
 		// if(transformed.size() > 0)
 		// 	printTransform(transformed);
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 	{
 		vector<GestureSample> test = readGestureSet(gidPre + boost::lexical_cast<std::string>(i), "1");
 		vector<vector<vector<double> > > transformTest = transformSamples(test);
-		for(int sampleNum = 0; sampleNum < transformTest.size(); sampleNum++)
+		for(size_t sampleNum = 0; sampleNum < transformTest.size(); sampleNum++)
 		{
 			totalNum++;
 			vector<vector<double> > sample = transformTest.at(sampleNum);
