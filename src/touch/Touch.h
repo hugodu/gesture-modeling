@@ -134,7 +134,7 @@ public:
   {
     vector<Contact>::iterator contact;
     for( contact = begin(); contact != end(); contact++) {
-      cout << "x: " << contact->x << "y: " << contact->y;
+      cout << "x: " << contact->x << "\ty: " << contact->y << "\t";
     }
     cout << endl;
 

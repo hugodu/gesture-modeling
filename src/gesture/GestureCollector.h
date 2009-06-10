@@ -15,34 +15,38 @@
 #include <stdio.h>
 #include <cstdlib>
 
-
 #include "touch/Touch.h"
 
-
-class GestureCollector{
+class GestureCollector
+{
 	bool appendFrames;
 public:
 
-	GestureCollector(){}
-	~GestureCollector(){}
+	GestureCollector()
+	{
+	}
+	~GestureCollector()
+	{
+	}
 	GestureSample currSample;
+
 	std::vector<GestureSample> samples;
 
-	void updateFrame(ContactSetFrame c){
-	//	if(appendFrames)
-	//	{
-			currSample.push_back(c);
-	//		std::cout << "insert\n";
-	//	}
+	void updateFrame(ContactSetFrame c)
+	{
+		//	if(appendFrames)
+		//	{
+		currSample.push_back(c);
+		//	}
 	}
 
 	void endSample()
 	{
 		appendFrames = false;
 		samples.push_back(currSample);
-		std::cout << "\n\nPrinting Sample:\n";
-		currSample.printSample();
-		std::cout << "\n";
+		cout << "Collected: " << samples.size() << " samples" << endl;
+//		std::cout << "\n\nPrinting Sample:\n" << std::endl;
+//		currSample.printSample();
 	}
 
 	void startSample()
