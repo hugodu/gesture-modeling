@@ -8,7 +8,17 @@
 #ifndef GESTURES_H_
 #define GESTURES_H_
 
+#include <map>
+#include <string>
 
+#include <touch/Touch.h>
+#include <gesture/models/VectorGestureClassification.h>
+
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/copy.hpp>
+
+using namespace std;
+//For debug and test
 string base = "data/reOrdered/";
 
 void printTransform(vector<vector<double> > transformed)
@@ -72,7 +82,38 @@ vector<vector<vector<double> > > transformSamples(vector<GestureSample> samples)
 		cout << "No Samples" << endl;
 
 	return transformedSet;
-
 }
+
+class RecognitionHelper
+{
+public:
+	VectorGestureClassification classifier;
+	map<int, string> 			gestureNameMap;
+
+	RecognitionHelper()
+	{}
+	void trainWithSamples(vector<GestureSample> trainingSet, string gestureName)
+	{
+		vector<vector<vector<double> > > trnsfTrain = transformSamples(trainingSet);
+		//Use the first sample as the representative
+		scale_filter filter = scale_filter(trnsfTrain[0][0]);
+		//Ensure the training set is appropriately scaled
+		vector<vector<vector<double> > > trnsfScaled = trnsfTrain;
+		for(size_t i = 0; i < trnsfTrain.size(); i++)
+		{
+			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),trnsfScaled[i]);
+		}
+
+		classifier.addGestureWithExamples(trnsfTrain, 10);
+		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
+		cout << "Added: " << gestureName << " as: " << classifier.numGestures() - 1;
+	}
+
+	string classify(GestureSample sample)
+	{
+		int classIndex = classifier.classify(sample.transform());
+		return gestureNameMap[classIndex];
+	}
+};
 
 #endif /* GESTURES_H_ */

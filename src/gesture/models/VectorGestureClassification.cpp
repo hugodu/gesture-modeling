@@ -27,7 +27,7 @@
 
 #include "VectorGestureClassification.h"
 
-#include <ame/patterns/task/classification.hpp>
+#include <ame/patterns/task/filtered_classification.hpp>
 #include <ame/patterns/model/chain_skip_hmm.hpp>
 #include <ame/observations/training/dynamic_vector.hpp>
 #include <ame/observations/training/normal.hpp>
@@ -39,7 +39,7 @@
 namespace {
 
     typedef ame::patterns::model::chain_skip_hmm<ame::observations::dynamic_vector<std::vector<ame::observations::normal> >, long double> gesture_model_type;
-    typedef ame::patterns::classification_task<gesture_model_type, ame::patterns::best_match_training> gesture_task_type;
+    typedef ame::patterns::filtered_classification_task<gesture_model_type, scale_filter, ame::patterns::best_match_training> gesture_task_type;
     typedef std::vector<std::vector<double> > recording_type;
     typedef std::vector<recording_type> recordings_type;
 }
@@ -79,6 +79,12 @@ void VectorGestureClassification::addGestureWithExamples
 
 int VectorGestureClassification::classify(const std::vector<std::vector<double> > &gesture)
 {
+	//Cache the static cast ?
+	//Call reset params for all pairs with this sample
+	//It's a hack so each filter is aware of what's to be done with the incoming sample
+	for(size_t i = 0; i <  static_cast<gesture_task_type *>(mClassificationTask)->get_num_pairs(); i++)
+		static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i).reset_params_for(gesture);
+
     return mLastRecognition =
         static_cast<gesture_task_type *>(mClassificationTask)
             ->

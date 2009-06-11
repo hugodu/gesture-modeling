@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 		vector<GestureSample> train = readGestureSet(gidPre
 				+ boost::lexical_cast<std::string>(i), "5");
 		vector<vector<vector<double> > > trnsfTrain = transformSamples(train);
+
 		cout << "Training Gesture " << i << endl;//" with " << trnsfTrain.size() << " samples";
 		//		for(int k = 0; k < trnsfTrain.size(); k++)
 		//			printTransform(trnsfTrain[k]);
