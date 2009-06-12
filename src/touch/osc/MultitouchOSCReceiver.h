@@ -19,7 +19,7 @@ public:
 
 	ContactSetFrame currFrame;
 	unsigned int numContacts;
-	GestureCollector gestureListener;
+	GestureCollector *listener;
 
 	MultitouchOscReceiver()
 	{
@@ -44,12 +44,16 @@ public:
 				//cout << "sample" << endl;
 				const char* smpl = (arg++)->AsString();
 				if (strcmp(smpl, "start") == 0)
-					gestureListener.startSample();
+					listener->startSample();
 				else if (strcmp(smpl, "end") == 0)
-					gestureListener.endSample();
+					listener->endSample();
 				else
 					cout << "MsgParseError";
+			}
 
+			if (strcmp(m.AddressPattern(), "/gestr/action") == 0)
+			{
+				listener->gestureAction((arg++)->AsString());
 			}
 
 			else if (strcmp(m.AddressPattern(), "/tuio2d/frm") == 0)
@@ -80,7 +84,7 @@ public:
 				//Sent at end of frame.
 				numContacts = m.ArgumentCount();
                 //Send Frame to listener
-                gestureListener.updateFrame(currFrame);
+                listener->updateFrame(currFrame);
 			}
 		} catch (osc::Exception& e)
 		{
@@ -91,7 +95,7 @@ public:
 
 };
 
-void initMultitouchOscReceiver(int port, GestureCollector collector)
+void initMultitouchOscReceiver(int port, GestureCollector *collector)
 {
 	MultitouchOscReceiver oscListener;
 
@@ -99,8 +103,8 @@ void initMultitouchOscReceiver(int port, GestureCollector collector)
 			port), &oscListener);
 
 	cout << "Now Listening for input on port " << port << "..." <<endl;
-
-	oscListener.gestureListener = collector;
+//	cout << "Collector Type: " <<
+	oscListener.listener = collector;
 	s.RunUntilSigInt();
 
 	cout << "Done listening to OSC.\n";

@@ -56,5 +56,6 @@ public:
 		appendFrames = true;
 	}
 
+	virtual void gestureAction(const char* actionString){}
 };
 #endif /* GESTURELEARNER_H_ */

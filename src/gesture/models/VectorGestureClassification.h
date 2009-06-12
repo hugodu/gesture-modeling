@@ -44,7 +44,7 @@ public:
 	 * Sets the bounds of the first frame of the 'representative' sample
 	 */
 
-	scale_filter(const vector<double> &frame1)
+	scale_filter(const std::vector<double> &frame1)
 	{
 		//set xBounds and yBounds
 		double minY = std::numeric_limits<double>::max();
@@ -121,6 +121,7 @@ public:
     VectorGestureClassification();
     ~VectorGestureClassification();
 
+    void addGestureWithExamplesAndFilter(const std::vector<std::vector<std::vector<double> > > &examples, int num_states, scale_filter filter);
     void addGestureWithExamples(const std::vector<std::vector<std::vector<double> > > &examples, int num_states);
     int classify(const std::vector<std::vector<double> > &gesture);
     int numGestures() const;

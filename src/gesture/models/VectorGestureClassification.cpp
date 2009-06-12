@@ -55,6 +55,26 @@ VectorGestureClassification::~VectorGestureClassification()
     delete static_cast<gesture_task_type *>(mClassificationTask);
 }
 
+/**
+ * For now, a gesture is added with a filter. Meaning 1 model + 1 filter = 1 gesture.
+ * We'll deal with multiple filters for a model soon.
+ */
+void VectorGestureClassification::addGestureWithExamplesAndFilter
+(
+	const std::vector<std::vector<std::vector<double> > > &examples,
+	int num_states,
+	scale_filter filter
+)
+{
+	addGestureWithExamples(examples, num_states);
+    //Add the a filter for the model learnt above. It should be the last model.
+    static_cast<gesture_task_type *>(mClassificationTask)
+            ->
+				add_filter_for_pattern(filter,
+										static_cast<gesture_task_type *>(mClassificationTask) -> models().size() - 1);
+}
+
+
 void VectorGestureClassification::addGestureWithExamples
 (
     const std::vector<std::vector<std::vector<double> > > &examples,
@@ -77,6 +97,7 @@ void VectorGestureClassification::addGestureWithExamples
             );
 }
 
+
 int VectorGestureClassification::classify(const std::vector<std::vector<double> > &gesture)
 {
 	//Cache the static cast ?
@@ -96,7 +117,7 @@ int VectorGestureClassification::numGestures() const
     return
         static_cast<gesture_task_type *>(mClassificationTask)
             ->
-                models().size();
+                get_num_pairs();
 }
 
 const std::vector<long double> &VectorGestureClassification::probabilities() const

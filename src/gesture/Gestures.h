@@ -101,10 +101,10 @@ public:
 		vector<vector<vector<double> > > trnsfScaled = trnsfTrain;
 		for(size_t i = 0; i < trnsfTrain.size(); i++)
 		{
-			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),trnsfScaled[i]);
+			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),trnsfScaled[i].begin());
 		}
 
-		classifier.addGestureWithExamples(trnsfTrain, 10);
+		classifier.addGestureWithExamplesAndFilter(trnsfTrain, 10, filter);
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
 		cout << "Added: " << gestureName << " as: " << classifier.numGestures() - 1;
 	}
