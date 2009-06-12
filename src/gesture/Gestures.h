@@ -106,7 +106,7 @@ public:
 
 		classifier.addGestureWithExamplesAndFilter(trnsfTrain, 10, filter);
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
-		cout << "Added: " << gestureName << " as: " << classifier.numGestures() - 1;
+		cout << "Added: " << gestureName << " as: " << classifier.numGestures() - 1 << "\n"<<endl;
 	}
 
 	string classify(GestureSample sample)
@@ -114,6 +114,12 @@ public:
 		int classIndex = classifier.classify(sample.transform());
 		return gestureNameMap[classIndex];
 	}
+
+	const std::vector<long double> &probabilities() const
+	{
+	    return classifier.probabilities();
+	}
+
 };
 
 #endif /* GESTURES_H_ */
