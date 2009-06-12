@@ -31,7 +31,7 @@
 
 #include <vector>
 #include <limits>
-
+#include <iostream>
 class scale_filter
 {
 public:
@@ -56,12 +56,14 @@ public:
 			minX = minX > frame1[i] 	? frame1[i] 	: minX;
 			minY = minY > frame1[i + 1] ? frame1[i + 1] : minY;
 			maxX = maxX < frame1[i] 	? frame1[i] 	: maxX;
-			minY = minY < frame1[i + 1] ? frame1[i + 1] : minY;
+			maxY = maxY < frame1[i + 1] ? frame1[i + 1] : maxY;
 		}
 		xBounds = maxX - minX;
 		yBounds = maxY - minY;
 		sX = sY = 1.;
 		tX = tY = 0.;
+		std::cout << "Bounds: [" << xBounds << ", " << yBounds << "]" << std::endl;
+
 	}
 
 	/**
@@ -95,15 +97,17 @@ public:
 		double minX = minY;
 		double maxX = -minY;
 		double maxY = -minY;
-		for(size_t i; i + 1< frame1.size(); i+=2)
+		for(size_t i = 0; i + 1< frame1.size(); i+=2)
 		{
 			meanX += frame1[i];
 			meanY += frame1[i + 1];
-			minX = minX > frame1[i] ? frame1[i] : minX;
+			minX = minX > frame1[i] 	? frame1[i] 	: minX;
 			minY = minY > frame1[i + 1] ? frame1[i + 1] : minY;
-			maxX = maxX < frame1[i] ? frame1[i] : maxX;
-			minY = minY < frame1[i + 1] ? frame1[i + 1] : minY;
+			maxX = maxX < frame1[i] 	? frame1[i] 	: maxX;
+			maxY = maxY < frame1[i + 1] ? frame1[i + 1] : maxY;
 		}
+		//std::cout << "\t\tminX:"<< minX << " minY:" << minY << " maxX:" << maxX << " maxY:" << maxY << std::endl;
+
 		meanX /= frame1.size()/2.; //As of now size() is 2*numContacts.
 		meanY /= frame1.size()/2.;
 		//translate and scale ? origin = meanX and meanY of points in frame1
@@ -112,6 +116,7 @@ public:
 		tY = -meanY;
 		sX = xBounds / (maxX - minX);
 		sY = yBounds / (maxY - minY);
+		//std::cout << "Reset: sX:" << sX << " sY:" << sY << " tX:" << tX << " tY:" << tY << std::endl;
 	}
 };
 
