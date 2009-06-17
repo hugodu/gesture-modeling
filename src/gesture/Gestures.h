@@ -103,8 +103,8 @@ public:
 		{
 			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),trnsfScaled[i].begin());
 		}
-
-		classifier.addGestureWithExamplesAndFilter(trnsfTrain, 10, filter);
+		cout << "Training With: " << trnsfScaled.size() << " samples" << endl;
+		classifier.addGestureWithExamplesAndFilter(trnsfScaled, 11, filter);
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
 		cout << "Added: " << gestureName << " as: " << classifier.numGestures() - 1 << "\n"<<endl;
 	}
