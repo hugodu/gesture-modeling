@@ -30,7 +30,7 @@
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/multitouch-gestr/src}&quot;"/>
 <listOptionValue builtIn="false" value="/home/sashikanth/workspace/amelibraries/include"/>
 <listOptionValue builtIn="false" value="/usr/local/boost_1_38_0"/>
-<listOptionValue builtIn="false" value="/home/sashikanth/workspace/oscpack"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/multitouch-gestr/includes/oscpack}&quot;"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1141980188" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
@@ -56,7 +56,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="src/gesture/OscGestureRecognition.cpp|src/gesture/GestureStream.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="includes|includes/oscpack/tests|src/gesture/OscGestureRecognition.cpp|src/gesture/GestureStream.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>
@@ -516,7 +516,7 @@
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/multitouch-gestr/src}&quot;"/>
 <listOptionValue builtIn="false" value="/home/sashikanth/workspace/amelibraries/include"/>
 <listOptionValue builtIn="false" value="/usr/local/boost_1_38_0"/>
-<listOptionValue builtIn="false" value="/home/sashikanth/workspace/oscpack"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/multitouch-gestr/includes/oscpack}&quot;"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.957322253" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
@@ -542,7 +542,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="src/gesture/OscGestureRecognition.cpp|src/gesture/GestureStream.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="includes|includes/oscpack/tests|src/gesture/OscGestureRecognition.cpp|src/gesture/GestureStream.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>
