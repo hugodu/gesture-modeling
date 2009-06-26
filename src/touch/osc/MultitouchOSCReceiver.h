@@ -44,7 +44,10 @@ public:
 				//cout << "sample" << endl;
 				const char* smpl = (arg++)->AsString();
 				if (strcmp(smpl, "start") == 0)
-					listener->startSample();
+				{
+					const char* gestureName = (arg++)->AsString();
+					listener->startSample(gestureName);
+				}
 				else if (strcmp(smpl, "end") == 0)
 					listener->endSample();
 				else

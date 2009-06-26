@@ -29,7 +29,7 @@ public:
 	{
 	}
 	GestureSample currSample;
-
+	string gestureName;
 	std::vector<GestureSample> samples;
 
 	void updateFrame(ContactSetFrame c)
@@ -49,9 +49,10 @@ public:
 //		currSample.printSample();
 	}
 
-	void startSample()
+	void startSample(const char* gestName)
 	{
 		//clear sample and start appending frames
+		gestureName = gestName;
 		currSample.clear();
 		appendFrames = true;
 	}

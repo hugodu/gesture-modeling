@@ -104,7 +104,17 @@ int VectorGestureClassification::classify(const std::vector<std::vector<double> 
 	//Call reset params for all pairs with this sample
 	//It's a hack so each filter is aware of what's to be done with the incoming sample
 	for(size_t i = 0; i <  static_cast<gesture_task_type *>(mClassificationTask)->get_num_pairs(); i++)
-		static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i).reset_params_for(gesture);
+	{
+		scale_filter* filter = &(static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i));
+		if(filter->accepts(gesture))
+			filter->reset_params_for(gesture);
+		else //FIXME: This is a temporary hack, this should be done only inside the filtered_classification_task class
+		{
+			std::cout << "--- Sample Ignored ---" << std::endl;
+			return -1;
+		}
+
+	}
 
     return mLastRecognition =
         static_cast<gesture_task_type *>(mClassificationTask)

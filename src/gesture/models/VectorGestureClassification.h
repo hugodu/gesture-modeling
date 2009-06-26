@@ -39,13 +39,15 @@ public:
 	double xBounds, yBounds;
 	double sX, sY; //Scale Params
 	double tX, tY; // Translate Params
-
+	int numFingers;
 	/**
 	 * Sets the bounds of the first frame of the 'representative' sample
 	 */
 
 	scale_filter(const std::vector<double> &frame1)
 	{
+		//Assuming that only x,y dimensions for each finger are being used.
+		numFingers = frame1.size() / 2;
 		//set xBounds and yBounds
 		double minY = std::numeric_limits<double>::max();
 		double minX = minY;
@@ -62,8 +64,7 @@ public:
 		yBounds = maxY - minY;
 		sX = sY = 1.;
 		tX = tY = 0.;
-		std::cout << "Bounds: [" << xBounds << ", " << yBounds << "]" << std::endl;
-
+		std::cout << "NumFingers: " << numFingers << ". Bounds: [" << xBounds << ", " << yBounds << "]" << std::endl;
 	}
 
 	/**
@@ -74,8 +75,8 @@ public:
 		std::vector<double> frame = _frame;
 		for(size_t i = 0; i + 1< frame.size(); i+=2)
 		{
-			frame[i] 		+= tX;
-			frame[i + 1] 	+= tY;
+			frame[i] 		= frame[i] + tX;
+			frame[i + 1] 	= frame[i + 1] + tY;
 			frame[i] 		*= sX;
 			frame[i + 1] 	*= sY;
 		}
@@ -97,6 +98,7 @@ public:
 		double minX = minY;
 		double maxX = -minY;
 		double maxY = -minY;
+		//Iterate over contacts for frame1
 		for(size_t i = 0; i + 1< frame1.size(); i+=2)
 		{
 			meanX += frame1[i];
@@ -116,7 +118,15 @@ public:
 		tY = -meanY;
 		sX = xBounds / (maxX - minX);
 		sY = yBounds / (maxY - minY);
-		//std::cout << "Reset: sX:" << sX << " sY:" << sY << " tX:" << tX << " tY:" << tY << std::endl;
+		std::cout << "Params: sX:" << sX << " sY:" << sY << " tX:" << tX << " tY:" << tY << std::endl;
+	}
+
+	bool accepts(const std::vector<std::vector<double> > &sample)
+	{
+		if(sample.size() > 1u && sample[0].size() == numFingers * 2u)
+			return true;
+		else
+			return false;
 	}
 };
 

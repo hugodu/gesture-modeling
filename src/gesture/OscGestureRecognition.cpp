@@ -6,11 +6,12 @@
  */
 
 #include <iostream>
-
 #include <cstdlib>
 
 #include "gesture/GestureCollector.h"
 #include "touch/osc/MultitouchOSCReceiver.h"
+#include "gesture/Gestures.h"
+
 
 using namespace std;
 
@@ -20,6 +21,7 @@ using namespace std;
  */
 class OscGestureRecognition : public GestureCollector
 {
+	RecognitionHelper recognizer;
 public:
 	OscGestureRecognition()
 	{
@@ -29,9 +31,23 @@ public:
 	{
 
 	}
+
 	virtual void gestureAction(const char* actionString)
 	{
 		cout << "Action: " << actionString << endl;
+		if(strcmp(actionString, "train") == 0)
+		{
+			recognizer.trainWithSamples(samples, gestureName);
+			samples.clear();
+		}
+		if(strcmp(actionString, "classify") == 0)
+		{
+			string recognized = recognizer.classify(currSample);
+			cout << "!! *** !! Recognized : " << recognized << endl;
+			currSample.clear();
+			samples.clear(); //No reason to hold on to samples currently
+		}
+
 	}
 };
 
@@ -39,8 +55,6 @@ int main(int argc, char **argv)
 {
 	cout << "Collector Started" << endl;
 	OscGestureRecognition oscRecog;
-	initMultitouchOscReceiver(3333, &oscRecog);
-
-
+	initMultitouchOscReceiver(3335, &oscRecog);
 }
 

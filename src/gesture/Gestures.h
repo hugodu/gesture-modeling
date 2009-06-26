@@ -10,6 +10,7 @@
 
 #include <map>
 #include <string>
+#include <fstream>
 
 #include <touch/Touch.h>
 #include <gesture/models/VectorGestureClassification.h>
@@ -106,13 +107,18 @@ public:
 		cout << "Training With: " << trnsfScaled.size() << " samples" << endl;
 		classifier.addGestureWithExamplesAndFilter(trnsfScaled, 11, filter);
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
-		cout << "Added: " << gestureName << " as: " << classifier.numGestures() - 1 << "\n"<<endl;
+		cout << "Added: " << gestureName << " as gesture number: " << classifier.numGestures() - 1 << "\n"<<endl;
 	}
 
 	string classify(GestureSample sample)
 	{
-		int classIndex = classifier.classify(sample.transform());
-		return gestureNameMap[classIndex];
+		vector<vector<double> > transformed = sample.transform();
+		//printTransform(transformed);
+		int classIndex = classifier.classify(transformed);
+		if(classIndex >= 0 && ((unsigned int)classIndex) < gestureNameMap.size())
+			return gestureNameMap[classIndex];
+		else //classIndex == -1 when sample doesn't match any filter-model pair
+			return "None";
 	}
 
 	const std::vector<long double> &probabilities() const
