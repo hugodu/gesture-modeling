@@ -96,18 +96,21 @@ public:
 	void trainWithSamples(vector<GestureSample> trainingSet, string gestureName)
 	{
 		vector<vector<vector<double> > > trnsfTrain = transformSamples(trainingSet);
-		//Use the first sample as the representative
-		scale_filter filter = scale_filter(trnsfTrain[0][0]);
-		//Ensure the training set is appropriately scaled
-		vector<vector<vector<double> > > trnsfScaled = trnsfTrain;
+		//Magical filter takes care of all preprocessing, and live processing of the incoming sample(s).
+		multitouch_filter filter = multitouch_filter(trnsfTrain);
+
+		//Ensure the training set is appropriately scaled for training the model.
+		vector<vector<vector<double> > > filteredTraining = trnsfTrain;
 		for(size_t i = 0; i < trnsfTrain.size(); i++)
 		{
-			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),trnsfScaled[i].begin());
+			filter.reset_params_for(trnsfTrain[i]);
+			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),filteredTraining[i].begin());
 		}
-		cout << "Training With: " << trnsfScaled.size() << " samples" << endl;
-		classifier.addGestureWithExamplesAndFilter(trnsfScaled, 11, filter);
+
+		cout << "Training With: " << filteredTraining.size() << " samples" << endl;
+		classifier.addGestureWithExamplesAndFilter(filteredTraining, 5, filter);
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
-		cout << "Added: " << gestureName << " as gesture number: " << classifier.numGestures() - 1 << "\n"<<endl;
+		cout << "\nAdded new gesture(" << classifier.numGestures() - 1 << "): " << gestureName << "\n"<<endl;
 	}
 
 	string classify(GestureSample sample)
@@ -115,9 +118,20 @@ public:
 		vector<vector<double> > transformed = sample.transform();
 		//printTransform(transformed);
 		int classIndex = classifier.classify(transformed);
-		if(classIndex >= 0 && ((unsigned int)classIndex) < gestureNameMap.size())
+		vector<long double> probs = classifier.probabilities();
+
+		bool allZero = true;
+		for(unsigned int i = 0 ; i < probs.size(); i++)
+		{
+			if(probs[i] > 0)
+				allZero = false;
+			cout << probs[i] << ", ";
+		}
+		cout << endl;
+
+		if(!allZero && classIndex >= 0 && ((unsigned int)classIndex) < gestureNameMap.size())
 			return gestureNameMap[classIndex];
-		else //classIndex == -1 when sample doesn't match any filter-model pair
+		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
 			return "None";
 	}
 

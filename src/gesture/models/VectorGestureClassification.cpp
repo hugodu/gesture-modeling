@@ -39,7 +39,7 @@
 namespace {
 
     typedef ame::patterns::model::chain_skip_hmm<ame::observations::dynamic_vector<std::vector<ame::observations::normal> >, long double> gesture_model_type;
-    typedef ame::patterns::filtered_classification_task<gesture_model_type, scale_filter, ame::patterns::best_match_training> gesture_task_type;
+    typedef ame::patterns::filtered_classification_task<gesture_model_type, multitouch_filter, ame::patterns::best_match_training> gesture_task_type;
     typedef std::vector<std::vector<double> > recording_type;
     typedef std::vector<recording_type> recordings_type;
 }
@@ -63,7 +63,7 @@ void VectorGestureClassification::addGestureWithExamplesAndFilter
 (
 	const std::vector<std::vector<std::vector<double> > > &examples,
 	int num_states,
-	scale_filter filter
+	multitouch_filter filter
 )
 {
 	addGestureWithExamples(examples, num_states);
@@ -105,12 +105,11 @@ int VectorGestureClassification::classify(const std::vector<std::vector<double> 
 	//It's a hack so each filter is aware of what's to be done with the incoming sample
 	for(size_t i = 0; i <  static_cast<gesture_task_type *>(mClassificationTask)->get_num_pairs(); i++)
 	{
-		scale_filter* filter = &(static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i));
+		multitouch_filter* filter = &(static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i));
 		if(filter->accepts(gesture))
 			filter->reset_params_for(gesture);
 		else //FIXME: This is a temporary hack, this should be done only inside the filtered_classification_task class
 		{
-			std::cout << "--- Sample Ignored ---" << std::endl;
 			return -1;
 		}
 
