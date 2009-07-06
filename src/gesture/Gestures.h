@@ -17,6 +17,9 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
 
 using namespace std;
 //For debug and test
@@ -95,22 +98,39 @@ public:
 	{}
 	void trainWithSamples(vector<GestureSample> trainingSet, string gestureName)
 	{
+		VectorGestureClassification tempClassifier;
+
 		vector<vector<vector<double> > > trnsfTrain = transformSamples(trainingSet);
 		//Magical filter takes care of all preprocessing, and live processing of the incoming sample(s).
 		multitouch_filter filter = multitouch_filter(trnsfTrain);
 
 		//Ensure the training set is appropriately scaled for training the model.
 		vector<vector<vector<double> > > filteredTraining = trnsfTrain;
-		for(size_t i = 0; i < trnsfTrain.size(); i++)
+		for(size_t i = 0; i < trnsfTrain.size() - 1; i++)
 		{
 			filter.reset_params_for(trnsfTrain[i]);
 			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),filteredTraining[i].begin());
 		}
 
 		cout << "Training With: " << filteredTraining.size() << " samples" << endl;
-		classifier.addGestureWithExamplesAndFilter(filteredTraining, 5, filter);
+		const unsigned int MIN_STATE_SIZE = 2;
+		const unsigned int MAX_STATE_SIZE = 11;
+		for(size_t i = MIN_STATE_SIZE; i <= MAX_STATE_SIZE; i++)
+			tempClassifier.addGestureWithExamplesAndFilter(filteredTraining, i, filter);
+
+
+
+		int classIndex = tempClassifier.classify(trnsfTrain[trnsfTrain.size()-1]);
+
+		vector<long double> probs = tempClassifier.probabilities();
+		cout << "Probabilities for last sample is :: ";
+		for(unsigned int i = 0 ; i < probs.size(); i++)
+			cout << probs[i] << ", ";
+
+		classifier.addGestureWithExamplesAndFilter(filteredTraining, classIndex + MIN_STATE_SIZE, filter);
+
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
-		cout << "\nAdded new gesture(" << classifier.numGestures() - 1 << "): " << gestureName << "\n"<<endl;
+		cout << "\nAdded new gesture(" << classifier.numGestures() - 1 << "): " << gestureName << " [" << classIndex + MIN_STATE_SIZE << " states]\n"<<endl;
 	}
 
 	string classify(GestureSample sample)
@@ -140,6 +160,31 @@ public:
 	    return classifier.probabilities();
 	}
 
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & boost::serialization::base_object<RecognitionHelper>(*this);
+        ar & classifier;
+        ar & gestureNameMap;
+    }
 };
 
+
+void saveGestureSet(const char* appName, RecognitionHelper &helper)
+{
+	ofstream storage(appName, ios::out | ios::binary);
+	boost::archive::binary_oarchive out(storage);
+
+	out << helper;
+}
+
+void readGestureSet(const char* appName, RecognitionHelper &helper)
+{
+	ifstream storage(appName, ios::in | ios::binary);
+	boost::archive::binary_iarchive in(storage);
+
+	in >> helper;
+
+}
 #endif /* GESTURES_H_ */

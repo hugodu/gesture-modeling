@@ -100,19 +100,13 @@ void VectorGestureClassification::addGestureWithExamples
 
 int VectorGestureClassification::classify(const std::vector<std::vector<double> > &gesture)
 {
-	//Cache the static cast ?
 	//Call reset params for all pairs with this sample
-	//It's a hack so each filter is aware of what's to be done with the incoming sample
+	//Each filter is aware of what's to be done with the incoming sample
 	for(size_t i = 0; i <  static_cast<gesture_task_type *>(mClassificationTask)->get_num_pairs(); i++)
 	{
 		multitouch_filter* filter = &(static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i));
 		if(filter->accepts(gesture))
 			filter->reset_params_for(gesture);
-		else //FIXME: This is a temporary hack, this should be done only inside the filtered_classification_task class
-		{
-			return -1;
-		}
-
 	}
 
     return mLastRecognition =
@@ -136,4 +130,8 @@ const std::vector<long double> &VectorGestureClassification::probabilities() con
             probabilities();
 }
 
-
+template<class Archive>
+void VectorGestureClassification::serialize(Archive & ar, const unsigned int version)
+{
+    ar & static_cast<gesture_task_type *>(mClassificationTask);
+}

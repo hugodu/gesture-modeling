@@ -35,6 +35,13 @@
 #include <string>
 #include <algorithm>
 #include <math.h>
+
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
+#include <fstream>
+
 #define PI 3.14159265
 
 using namespace std;
@@ -64,7 +71,7 @@ public:
 		feature[2]		= "Ang";
 		selectedFeat 	= -1;
 		//Use the first frame of the first (representative) sample to set scale parameters for the filter.
-		initParams(allSamples[0][0]);
+		initParams(allSamples);
 
 		selectFeature(allSamples);
 	}
@@ -212,13 +219,53 @@ public:
 		return fVals;
 	}
 
-
-private:
-	void initParams(const vector<double> frame1)
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive & ar, const unsigned int version)
 	{
+		ar & feature;
+		ar & angle;
+		ar & xBounds;
+		ar & yBounds;
+		ar & sX;
+		ar & sY;
+		ar & tX;
+		ar & tY;
+		ar & selectedFeat;
+		ar & numFingers;
+	}
+private:
+	void initParams(const vector<vector<vector<double> > > allSamples)
+	{
+		double xBMean = 0;
+		double yBMean = 0;
+		for(size_t i = 0; i < allSamples.size(); i++)
+		{
+			//Foreach sample, get bbox. Assign params to mean bbox size.
+			vector<double> frame1 = allSamples[i][0]; // First frame of sample i;
+			numFingers = frame1.size() / 2;
+			//set xBounds and yBounds
+			double bbox[2];
+			boundingBox(frame1, bbox);
+			xBMean += bbox[0];
+			yBMean += bbox[1];
+		}
+		xBMean /= allSamples.size();
+		yBMean /= allSamples.size();
+
+		xBounds = xBMean;
+		yBounds = yBMean;
 		//Assuming that only x,y dimensions for each finger are being used.
-		numFingers = frame1.size() / 2;
-		//set xBounds and yBounds
+
+		sX = sY = 1.;
+		tX = tY = 0.;
+		angle = 0.;
+		cout << "NumFingers: " << numFingers << ". Bounds: [" << xBounds << ", " << yBounds << "]" << endl;
+	}
+
+	void boundingBox(const vector<double> frame1, double* bbox)
+	{
+
 		double minY = numeric_limits<double>::max();
 		double minX = minY;
 		double maxX = -minY;
@@ -230,12 +277,8 @@ private:
 			maxX = maxX < frame1[i] 	? frame1[i] 	: maxX;
 			maxY = maxY < frame1[i + 1] ? frame1[i + 1] : maxY;
 		}
-		xBounds = maxX - minX;
-		yBounds = maxY - minY;
-		sX = sY = 1.;
-		tX = tY = 0.;
-		angle = 0.;
-		cout << "NumFingers: " << numFingers << ". Bounds: [" << xBounds << ", " << yBounds << "]" << endl;
+		bbox[0] = maxX - minX;
+		bbox[1] = maxY - minY;
 	}
 
 	double getScatterRatio(vector<vector<double> > featureValues)
@@ -291,9 +334,14 @@ public:
     int lastRecognition() const
     {   return mLastRecognition; }
     const vector<long double> &probabilities() const;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version);
+
 private:
     void *mClassificationTask;
-    int mLastRecognition;
+	int mLastRecognition;
 };
 
 #endif

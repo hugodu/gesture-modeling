@@ -75,7 +75,7 @@ public:
 
   void transform(vector<float> vals)
   {
-    cout << x << ", " << y << "; ";
+    //cout << x << ", " << y << "; ";
 
     vals.push_back(x);
     vals.push_back(y);
