@@ -35,12 +35,19 @@
 #include <string>
 #include <algorithm>
 #include <math.h>
+#include <fstream>
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
-#include <fstream>
+#include <boost/assign/std/vector.hpp>
+#include <boost/foreach.hpp>
+
+#include <ame/patterns/task/filtered_classification.hpp>
+#include <ame/patterns/model/chain_skip_hmm.hpp>
+#include <ame/observations/training/dynamic_vector.hpp>
+#include <ame/observations/training/normal.hpp>
 
 #define PI 3.14159265
 
@@ -60,6 +67,8 @@ public:
 	vector<int> reassignments;
 	int selectedFeat;
 	int numFingers;
+
+	multitouch_filter(){}
 	/**
 	 * Instantiates the required parameters for this gesture.
 	 * Determines ordering heuristic
@@ -321,23 +330,93 @@ private:
 	}
 };
 
+namespace {
+
+    typedef ame::patterns::model::chain_skip_hmm<ame::observations::dynamic_vector<std::vector<ame::observations::normal> >, long double> gesture_model_type;
+    typedef ame::patterns::filtered_classification_task<gesture_model_type, multitouch_filter, ame::patterns::best_match_training> gesture_task_type;
+    typedef std::vector<std::vector<double> > recording_type;
+    typedef std::vector<recording_type> recordings_type;
+}
 class VectorGestureClassification
 {
 public:
-    VectorGestureClassification();
-    ~VectorGestureClassification();
+    VectorGestureClassification()
+    {
+    	mClassificationTask = new gesture_task_type;
+    	mLastRecognition = -1;
+    }
+    ~VectorGestureClassification()
+    {
+        delete static_cast<gesture_task_type *>(mClassificationTask);
+    }
 
-    void addGestureWithExamplesAndFilter(const vector<vector<vector<double> > > &examples, int num_states, multitouch_filter filter);
-    void addGestureWithExamples(const vector<vector<vector<double> > > &examples, int num_states);
-    int classify(const vector<vector<double> > &gesture);
-    int numGestures() const;
+    void addGestureWithExamplesAndFilter(const vector<vector<vector<double> > > &examples, int num_states, multitouch_filter filter)
+    {
+    	addGestureWithExamples(examples, num_states);
+    	    //Add the a filter for the model learnt above. It should be the last model.
+    	    static_cast<gesture_task_type *>(mClassificationTask)
+    	            ->
+    					add_filter_for_pattern(filter,
+    											static_cast<gesture_task_type *>(mClassificationTask) -> models().size() - 1);
+    }
+    void addGestureWithExamples(const vector<vector<vector<double> > > &examples, int num_states)
+    {
+    	 static_cast<gesture_task_type *>(mClassificationTask)
+    	        ->
+    	            add_pattern_with_examples
+    	            (
+    	                num_states,
+    	                examples,
+    	                ame::observations::training::dynamic_vector
+    	                <
+    	                    std::vector<ame::observations::normal>
+    	                >
+    	                (
+    	                    ame::observations::training::normal(0.1)
+    	                )
+    	            );
+    }
+    int classify(const vector<vector<double> > &gesture)
+    {
+    	//Call reset params for all pairs with this sample
+    		//Each filter is aware of what's to be done with the incoming sample
+    		for(size_t i = 0; i <  static_cast<gesture_task_type *>(mClassificationTask)->get_num_pairs(); i++)
+    		{
+    			multitouch_filter* filter = &(static_cast<gesture_task_type *>(mClassificationTask)->get_filter(i));
+    			if(filter->accepts(gesture))
+    				filter->reset_params_for(gesture);
+    		}
+
+    	    return mLastRecognition =
+    	        static_cast<gesture_task_type *>(mClassificationTask)
+    	            ->
+    	                classify(gesture);
+    }
+    int numGestures() const
+    {
+        return
+            static_cast<gesture_task_type *>(mClassificationTask)
+                ->
+                    get_num_pairs();
+    }
     int lastRecognition() const
-    {   return mLastRecognition; }
-    const vector<long double> &probabilities() const;
+    {
+    	return mLastRecognition;
+    }
+    const vector<long double> &probabilities() const
+    {
+        return static_cast<gesture_task_type *>(mClassificationTask)
+            ->
+                probabilities();
+    }
 
     friend class boost::serialization::access;
     template<class Archive>
-    void serialize(Archive & ar, const unsigned int version);
+    void serialize(Archive & ar, const unsigned int version)
+    {
+    	ar & *(static_cast<gesture_task_type *>(mClassificationTask));
+    	ar & mLastRecognition;
+    }
 
 private:
     void *mClassificationTask;

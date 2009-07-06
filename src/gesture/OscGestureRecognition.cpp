@@ -32,7 +32,7 @@ public:
 
 	}
 
-	virtual void gestureAction(const char* actionString)
+	virtual void gestureAction(const char* actionString, const char* actionParam)
 	{
 		cout << "Action: " << actionString << endl;
 		if(strcmp(actionString, "train") == 0)
@@ -47,7 +47,16 @@ public:
 			currSample.clear();
 			samples.clear(); //No reason to hold on to samples currently
 		}
-
+		if(strcmp(actionString, "save") == 0)
+		{
+			cout << "Saving GestureSet as: " << actionParam << endl;
+			recognizer.saveGestureSet(actionParam);
+		}
+		if(strcmp(actionString, "load") == 0)
+		{
+			cout << "Loading GestureSet: " << actionParam << endl;
+			recognizer.loadGestureSet(actionParam);
+		}
 	}
 };
 
@@ -55,6 +64,6 @@ int main(int argc, char **argv)
 {
 	cout << "Collector Started" << endl;
 	OscGestureRecognition oscRecog;
-	initMultitouchOscReceiver(3335, &oscRecog);
+	initMultitouchOscReceiver(3333, &oscRecog);
 }
 

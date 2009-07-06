@@ -45,5 +45,30 @@ int main(int argc, char *argv[])
 		}
 	}
 	cout << "Overall Accuracy: " << float(correct) / totalNum << endl;
+	cout << "\n-------\nSaving Gestures" << endl;
+	recognizer.saveGestureSet("tempSet.gestr");
+
+	RecognitionHelper loaded;
+	cout << "\n-------\nLoading Gestures" << endl;
+	loaded.loadGestureSet("tempSet.gestr");
+
+	for (int i = 1; i <= 5; ++i)
+	{
+		string gestName = gidPre + boost::lexical_cast<std::string>(i);
+		vector<GestureSample> testSamples = readGestureSet(gestName, testUID);
+		for (size_t sampleNum = 0; sampleNum < testSamples.size(); sampleNum++)
+		{
+			totalNum++;
+			string classifiedAs = loaded.classify(testSamples[sampleNum]);
+			cout << "Gesture: " << i << " Sample: " << sampleNum << "\tClassified as: " << classifiedAs;
+			vector<long double > probs = loaded.probabilities();
+			for(size_t p = 0; p < probs.size(); p++)
+				cout << "\t(" << probs[p] << ")";
+			cout << endl;
+			if (strcmp(classifiedAs.c_str(), gestName.c_str()) == 0)
+				correct++;
+		}
+	}
+
 
 }

@@ -133,5 +133,11 @@ const std::vector<long double> &VectorGestureClassification::probabilities() con
 template<class Archive>
 void VectorGestureClassification::serialize(Archive & ar, const unsigned int version)
 {
-    ar & static_cast<gesture_task_type *>(mClassificationTask);
+    ar & *(static_cast<gesture_task_type *>(mClassificationTask));
 }
+// Seperating the template definition from it's decleration.
+// Unadvisable, but needed for the current structure.
+// A fix would be to make VectorGestureClassification a header only library.
+
+template void VectorGestureClassification::serialize<boost::archive::binary_oarchive>(boost::archive::binary_oarchive & ar, const unsigned int version);
+template void VectorGestureClassification::serialize<boost::archive::binary_iarchive>(boost::archive::binary_iarchive & ar, const unsigned int version);

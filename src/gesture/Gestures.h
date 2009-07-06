@@ -117,9 +117,6 @@ public:
 		const unsigned int MAX_STATE_SIZE = 11;
 		for(size_t i = MIN_STATE_SIZE; i <= MAX_STATE_SIZE; i++)
 			tempClassifier.addGestureWithExamplesAndFilter(filteredTraining, i, filter);
-
-
-
 		int classIndex = tempClassifier.classify(trnsfTrain[trnsfTrain.size()-1]);
 
 		vector<long double> probs = tempClassifier.probabilities();
@@ -159,32 +156,29 @@ public:
 	{
 	    return classifier.probabilities();
 	}
-
     friend class boost::serialization::access;
     template<class Archive>
     void serialize(Archive & ar, const unsigned int version)
     {
-        ar & boost::serialization::base_object<RecognitionHelper>(*this);
         ar & classifier;
         ar & gestureNameMap;
+    }
+
+    void saveGestureSet(const char* appName)
+    {
+    	ofstream storage(appName, ios::out | ios::binary);
+    	boost::archive::binary_oarchive out(storage);
+    	out << *this;
+    }
+
+    void loadGestureSet(const char* appName)
+    {
+    	ifstream storage(appName, ios::in | ios::binary);
+    	boost::archive::binary_iarchive in(storage);
+    	in >> *this;
     }
 };
 
 
-void saveGestureSet(const char* appName, RecognitionHelper &helper)
-{
-	ofstream storage(appName, ios::out | ios::binary);
-	boost::archive::binary_oarchive out(storage);
 
-	out << helper;
-}
-
-void readGestureSet(const char* appName, RecognitionHelper &helper)
-{
-	ifstream storage(appName, ios::in | ios::binary);
-	boost::archive::binary_iarchive in(storage);
-
-	in >> helper;
-
-}
 #endif /* GESTURES_H_ */
