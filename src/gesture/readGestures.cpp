@@ -17,12 +17,12 @@ int main(int argc, char *argv[])
 
 	RecognitionHelper recognizer;
 	string gidPre = "40";
-	string trainUID = "5";
+	string trainUID = "22";
 	string testUID = "3";
 	for (int i = 1; i <= 5; ++i)
 	{
 		string gestName = gidPre + boost::lexical_cast<std::string>(i);
-		vector<GestureSample> train = readGestureSet(gestName, trainUID);
+		vector<GestureSample> train = readGestureSet("320", trainUID);
 		cout << "Training Gesture " << i << endl;//" with " << trnsfTrain.size() << " samples";
 		recognizer.trainWithSamples(train, gestName);
 	}
