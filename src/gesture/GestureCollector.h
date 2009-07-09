@@ -34,10 +34,8 @@ public:
 
 	void updateFrame(ContactSetFrame c)
 	{
-		//	if(appendFrames)
-		//	{
-		currSample.push_back(c);
-		//	}
+		if(appendFrames)
+			currSample.push_back(c);
 	}
 
 	void endSample()
@@ -57,6 +55,13 @@ public:
 		appendFrames = true;
 	}
 
-	virtual void gestureAction(const char* actionString, const char* actionParam){}
+	/*
+	 * Default implementation of gesture actions
+	 */
+	virtual vector<string> gestureAction(const char* actionString, const char* actionParam)
+	{
+		vector<string> result;
+		return result;
+	}
 };
 #endif /* GESTURELEARNER_H_ */

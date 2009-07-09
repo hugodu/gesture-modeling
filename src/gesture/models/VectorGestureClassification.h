@@ -45,7 +45,8 @@
 #include <boost/foreach.hpp>
 
 #include <ame/patterns/task/filtered_classification.hpp>
-#include <ame/patterns/model/chain_skip_hmm.hpp>
+//#include <ame/patterns/model/chain_skip_hmm.hpp>
+#include <ame/patterns/model/gesture_hmm.hpp>
 #include <ame/observations/training/dynamic_vector.hpp>
 #include <ame/observations/training/normal.hpp>
 
@@ -332,7 +333,7 @@ private:
 
 namespace {
 
-    typedef ame::patterns::model::chain_skip_hmm<ame::observations::dynamic_vector<std::vector<ame::observations::normal> >, long double> gesture_model_type;
+    typedef ame::patterns::model::gesture_hmm<ame::observations::dynamic_vector<std::vector<ame::observations::normal> >, long double> gesture_model_type;
     typedef ame::patterns::filtered_classification_task<gesture_model_type, multitouch_filter, ame::patterns::best_match_training> gesture_task_type;
     typedef std::vector<std::vector<double> > recording_type;
     typedef std::vector<recording_type> recordings_type;
@@ -391,6 +392,11 @@ public:
     	        static_cast<gesture_task_type *>(mClassificationTask)
     	            ->
     	                classify(gesture);
+    }
+
+    void* getFilter(int filterIndex)
+    {
+    	return &(static_cast<gesture_task_type *>(mClassificationTask)->get_filter(filterIndex));
     }
     int numGestures() const
     {

@@ -9,7 +9,7 @@
 #include <cstdlib>
 
 #include "gesture/GestureCollector.h"
-#include "touch/osc/MultitouchOSCReceiver.h"
+#include "touch/osc/OscHandler.h"
 #include "gesture/Gestures.h"
 
 
@@ -32,31 +32,43 @@ public:
 
 	}
 
-	virtual void gestureAction(const char* actionString, const char* actionParam)
+	virtual vector<string> gestureAction(const char* actionString, const char* actionParam)
 	{
 		cout << "Action: " << actionString << endl;
+		vector<string> result;
 		if(strcmp(actionString, "train") == 0)
 		{
-			recognizer.trainWithSamples(samples, gestureName);
+			if(samples.size() > 2)
+				result = recognizer.trainWithSamples(samples, gestureName);
 			samples.clear();
 		}
-		if(strcmp(actionString, "classify") == 0)
+		else if(strcmp(actionString, "classify") == 0)
 		{
-			string recognized = recognizer.classify(currSample);
-			cout << "!! *** !! Recognized : " << recognized << endl;
+			vector<string> recognized = recognizer.classify(currSample);
+			result.push_back("recognized");
+			for(size_t i = 0; i < recognized.size(); i++)
+				result.push_back(recognized[i]);
+
+			cout << "!! *** !! Recognized : " << recognized[0] << endl;
 			currSample.clear();
 			samples.clear(); //No reason to hold on to samples currently
 		}
-		if(strcmp(actionString, "save") == 0)
+		else if(strcmp(actionString, "save") == 0)
 		{
 			cout << "Saving GestureSet as: " << actionParam << endl;
 			recognizer.saveGestureSet(actionParam);
+			result.push_back("saved");
+			result.push_back(actionParam);
 		}
-		if(strcmp(actionString, "load") == 0)
+		else if(strcmp(actionString, "load") == 0)
 		{
 			cout << "Loading GestureSet: " << actionParam << endl;
 			recognizer.loadGestureSet(actionParam);
+			result.push_back("loaded");
+			result.push_back(actionParam);
 		}
+
+		return result;
 	}
 };
 
@@ -64,6 +76,6 @@ int main(int argc, char **argv)
 {
 	cout << "Collector Started" << endl;
 	OscGestureRecognition oscRecog;
-	initMultitouchOscReceiver(3333, &oscRecog);
+	initMultitouchOscReceiver(&oscRecog);
 }
 

@@ -11,6 +11,8 @@
 #include <map>
 #include <string>
 #include <fstream>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <touch/Touch.h>
 #include <gesture/models/VectorGestureClassification.h>
@@ -96,8 +98,9 @@ public:
 
 	RecognitionHelper()
 	{}
-	void trainWithSamples(vector<GestureSample> trainingSet, string gestureName)
+	vector<string> trainWithSamples(vector<GestureSample> trainingSet, string gestureName)
 	{
+		vector<string> result;
 		VectorGestureClassification tempClassifier;
 
 		vector<vector<vector<double> > > trnsfTrain = transformSamples(trainingSet);
@@ -114,7 +117,7 @@ public:
 
 		cout << "Training With: " << filteredTraining.size() << " samples" << endl;
 		const unsigned int MIN_STATE_SIZE = 2;
-		const unsigned int MAX_STATE_SIZE = 11;
+		const unsigned int MAX_STATE_SIZE = 9;
 		for(size_t i = MIN_STATE_SIZE; i <= MAX_STATE_SIZE; i++)
 			tempClassifier.addGestureWithExamplesAndFilter(filteredTraining, i, filter);
 		int classIndex = tempClassifier.classify(trnsfTrain[trnsfTrain.size()-1]);
@@ -128,10 +131,21 @@ public:
 
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
 		cout << "\nAdded new gesture(" << classifier.numGestures() - 1 << "): " << gestureName << " [" << classIndex + MIN_STATE_SIZE << " states]\n"<<endl;
+		char* stateString;
+		sprintf(stateString, "%d", classIndex + MIN_STATE_SIZE);
+		result.push_back("trained");
+		result.push_back(gestureName);
+		result.push_back(stateString);
+
+		return result;
 	}
 
-	string classify(GestureSample sample)
+	/**
+	 *
+	 */
+	vector<string> classify(GestureSample sample)
 	{
+		vector<string> result;
 		vector<vector<double> > transformed = sample.transform();
 		//printTransform(transformed);
 		int classIndex = classifier.classify(transformed);
@@ -147,9 +161,21 @@ public:
 		cout << endl;
 
 		if(!allZero && classIndex >= 0 && ((unsigned int)classIndex) < gestureNameMap.size())
-			return gestureNameMap[classIndex];
+		{
+			//FIXME: More structure may help future cases
+			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
+			result.push_back(gestureNameMap[classIndex]);
+			char* tX;
+			char* tY;
+			sprintf(tX, "%f", -filter->tX);
+			sprintf(tY, "%f", -filter->tY);
+			result.push_back(tX);
+			result.push_back(tY);
+		}
 		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
-			return "None";
+			result.push_back("None");
+		return result;
+
 	}
 
 	const std::vector<long double> &probabilities() const
