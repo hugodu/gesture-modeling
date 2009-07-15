@@ -115,11 +115,17 @@ public:
 			boost::copy(trnsfTrain[i] | boost::adaptors::transformed(filter),filteredTraining[i].begin());
 		}
 
-		cout << "Training With: " << filteredTraining.size() << " samples" << endl;
+		cout << "Training With: " << filteredTraining.size() << " samples." << endl;
 		const unsigned int MIN_STATE_SIZE = 2;
 		const unsigned int MAX_STATE_SIZE = 9;
+		cout << "States[";
 		for(size_t i = MIN_STATE_SIZE; i <= MAX_STATE_SIZE; i++)
+		{
 			tempClassifier.addGestureWithExamplesAndFilter(filteredTraining, i, filter);
+			cout << i << ", ";
+			flush(cout);
+		}
+		cout << "]" << endl;
 		int classIndex = tempClassifier.classify(trnsfTrain[trnsfTrain.size()-1]);
 
 		vector<long double> probs = tempClassifier.probabilities();
@@ -131,11 +137,11 @@ public:
 
 		gestureNameMap.insert(pair<int, string>(classifier.numGestures() - 1, gestureName));
 		cout << "\nAdded new gesture(" << classifier.numGestures() - 1 << "): " << gestureName << " [" << classIndex + MIN_STATE_SIZE << " states]\n"<<endl;
-		char* stateString;
-		sprintf(stateString, "%d", classIndex + MIN_STATE_SIZE);
+		//char* stateString;
+		//sprintf(stateString, "%d", classIndex + MIN_STATE_SIZE);
 		result.push_back("trained");
 		result.push_back(gestureName);
-		result.push_back(stateString);
+		result.push_back(boost::lexical_cast<std::string>(classIndex + MIN_STATE_SIZE));
 
 		return result;
 	}
@@ -143,10 +149,10 @@ public:
 	/**
 	 *
 	 */
-	vector<string> classify(GestureSample sample)
+	vector<string> classify(GestureSample* sample)
 	{
 		vector<string> result;
-		vector<vector<double> > transformed = sample.transform();
+		vector<vector<double> > transformed = sample->transform();
 		//printTransform(transformed);
 		int classIndex = classifier.classify(transformed);
 		vector<long double> probs = classifier.probabilities();
@@ -165,12 +171,9 @@ public:
 			//FIXME: More structure may help future cases
 			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
 			result.push_back(gestureNameMap[classIndex]);
-			char* tX;
-			char* tY;
-			sprintf(tX, "%f", -filter->tX);
-			sprintf(tY, "%f", -filter->tY);
-			result.push_back(tX);
-			result.push_back(tY);
+
+			result.push_back(boost::lexical_cast<std::string>(-filter->tX));
+			result.push_back(boost::lexical_cast<std::string>(-filter->tY));
 		}
 		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
 			result.push_back("None");

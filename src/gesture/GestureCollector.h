@@ -41,16 +41,23 @@ public:
 	void endSample()
 	{
 		appendFrames = false;
-		samples.push_back(currSample);
-		cout << "Collected: " << samples.size() << " samples" << endl;
-//		std::cout << "\n\nPrinting Sample:\n" << std::endl;
-//		currSample.printSample();
+		if(currSample.size() > 0)
+		{
+			samples.push_back(currSample);
+			cout << "Collected: " << samples.size() << " samples. Last sample size:" << currSample.size() << endl;
+		}
+
+
+		//		currSample.printSample();
 	}
 
 	void startSample(const char* gestName)
 	{
 		//clear sample and start appending frames
 		gestureName = gestName;
+		//cout << "Start Sample, Clearing: " << currSample.size() << endl;
+//		for(size_t i = 0; i < currSample.size(); i++)
+//			cout << "\t" << i << ": " << currSample.sample[i].size() << endl;
 		currSample.clear();
 		appendFrames = true;
 	}

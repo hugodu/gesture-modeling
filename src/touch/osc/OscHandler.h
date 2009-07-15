@@ -7,6 +7,8 @@
 #ifndef MULTITOUCHOSCRECEIVER_H_
 #define MULTITOUCHOSCRECEIVER_H_
 
+#include <vector>
+#include <algorithm>
 #include "osc/OscReceivedElements.h"
 #include "osc/OscOutboundPacketStream.h"
 #include "osc/OscPacketListener.h"
@@ -14,8 +16,8 @@
 
 #define ADDRESS "127.0.0.1"
 #define OUTPUT_BUFFER_SIZE 4096
-#define IN_PORT 3333
-#define OUTPUT_PORT 3330
+#define IN_PORT 3330
+#define OUTPUT_PORT 3333
 
 
 using namespace std;
@@ -24,16 +26,22 @@ class OscHandler: public osc::OscPacketListener
 {
 public:
 
-	ContactSetFrame currFrame;
+	ContactSetFrame gestrFrame;
+	ContactSetFrame liveFrame;
 	GestureCollector *listener;
 	osc::OutboundPacketStream* outStream;
 	UdpListeningReceiveSocket* inSock;
+	bool gestrSampleStart;
+
 	char buffer[OUTPUT_BUFFER_SIZE];
+
+	vector<int> liveIds;
 
 	OscHandler()
 	{
 		cout << "Initing osc streams" << endl;
 		initOutStream();
+		gestrSampleStart = false;
 	}
 
 	~OscHandler()
@@ -55,10 +63,14 @@ public:
 				if (strcmp(smpl, "start") == 0)
 				{
 					const char* gestureName = (arg++)->AsString();
+					gestrSampleStart = true;
 					listener->startSample(gestureName);
 				}
 				else if (strcmp(smpl, "end") == 0)
+				{
+					gestrSampleStart = false;
 					listener->endSample();
+				}
 				else if(strcmp(smpl, "set") == 0)
 				{
 					Contact contact;
@@ -71,19 +83,19 @@ public:
 					arg++; // Something ccv is sending, don't care.
 					contact.width = (arg++)->AsFloat();
 					contact.height = (arg++)->AsFloat();
-					//contact.pressure = (arg++)->AsFloat();
+					contact.pressure = 0;
 
 					if (arg != m.ArgumentsEnd())
 						throw osc::ExcessArgumentException();
 
-					currFrame.push_back(contact);
+					gestrFrame.push_back(contact);
 				}
 				else if(strcmp(smpl, "fseq") == 0)
 				{
 					//Sent at end of frame. Send Frame to listener
-					listener->updateFrame(currFrame);
+					listener->updateFrame(gestrFrame);
 					//frame ends now
-					currFrame.clear();
+					gestrFrame.clear();
 				}
 				else
 					cout << "MsgParseError";
@@ -110,6 +122,7 @@ public:
 				cout << endl;
 				//These are important messages. Send the stream asap.
 				sendStream();
+
 			}
 			//Handle stream from CCV
 			//This section handles only the cloning of the stream to OUTPUT_PORT
@@ -123,13 +136,28 @@ public:
 					if(!outStream->IsBundleInProgress())
 						*outStream << osc::BeginBundleImmediate;
 
+					Contact contact;
+
+					contact.id = (arg++)->AsInt32();
+					contact.x = (arg++)->AsFloat();
+					contact.y = (arg++)->AsFloat();
+					contact.dx = (arg++)->AsFloat();
+					contact.dy = (arg++)->AsFloat();
+					arg++; // Something ccv is sending, don't care.
+					contact.width = (arg++)->AsFloat();
+					contact.height = (arg++)->AsFloat();
+					contact.pressure = 0;
+
 					*outStream 	<< osc::BeginMessage("/tuio/2Dcur") << "set";
-					*outStream 	<< (arg++)->AsInt32();
-					*outStream 	<< (arg++)->AsFloat();
-					*outStream 	<< (arg++)->AsFloat(); 	// id, x, y
-					*outStream 	<< (arg++)->AsFloat() << (arg++)->AsFloat() << (arg++)->AsFloat(); 	//dx, dy, (?)
-					*outStream 	<< (arg++)->AsFloat() << (arg++)->AsFloat(); 						//width, height
+					*outStream 	<< contact.id << contact.x << contact.y << contact.dx << contact.dy << 0.0
+								<< contact.width << contact.height;
+//					*outStream 	<< (arg++)->AsFloat();
+//					*outStream 	<< (arg++)->AsFloat(); 	// id, x, y
+//					*outStream 	<< (arg++)->AsFloat() << (arg++)->AsFloat() << (arg++)->AsFloat(); 	//dx, dy, (?)
+//					*outStream 	<< (arg++)->AsFloat() << (arg++)->AsFloat(); 						//width, height
 					*outStream 	<< osc::EndMessage;
+
+					liveFrame.push_back(contact);
 
 					if (arg != m.ArgumentsEnd())
 						throw osc::ExcessArgumentException();
@@ -137,24 +165,46 @@ public:
 				else if(strcmp(param, "alive") == 0)
 				{
 					if(!outStream->IsBundleInProgress() && !outStream->IsMessageInProgress()) // In case of no contacts
-					{
-						//cout << "BeginBundle for alive" << endl;
 						*outStream  << osc::BeginBundleImmediate;
-					}
 
 					*outStream << osc::BeginMessage("/tuio/2Dcur") << "alive";
+					vector<int> currIds;
 					while(arg != m.ArgumentsEnd())
-						*outStream << (arg++)->AsInt32();
+					{
+						int id = (arg++)->AsInt32();
+						*outStream << id;
+						currIds.push_back(id);
+					}
 					*outStream << osc::EndMessage;
+
+					bool newSample = false;
+					bool endSample = false;
+					for(size_t i = 0; i < currIds.size(); i++)
+						if(find(liveIds.begin(), liveIds.end(), currIds[i]) == liveIds.end()) //new touch. restart sample.
+							newSample = true;
+					for(size_t i = 0; i < liveIds.size(); i++)
+						if(find(currIds.begin(), currIds.end(), liveIds[i]) == currIds.end()) //lost a contact. end sample
+							endSample = true;
+					liveIds = currIds;
+					if(newSample)
+						listener->startSample("");
+					else if(endSample) //Don't end a sample when starting it.
+					{
+						listener->endSample();
+						listener->gestureAction("classify", "");
+					}
 				}
 				else if(strcmp(param, "fseq") == 0)
 				{
-
 					if(!outStream->IsBundleInProgress() )
 						*outStream  << osc::BeginBundleImmediate; // In case we missed the alive packet for this bundle
 					*outStream << osc::BeginMessage("/tuio/2Dcur") << "fseq" << 0 << osc::EndMessage;
 					*outStream << osc::EndBundle;
-
+					if(!gestrSampleStart) //If we're receiving a gestr sample, ignore the live stream.
+					{
+						listener->updateFrame(liveFrame);
+						liveFrame.clear();
+					}
 					sendStream();
 				}
 			}
@@ -186,7 +236,7 @@ void initMultitouchOscReceiver(GestureCollector *collector)
 
 	cout << "Now Listening for input on port " << IN_PORT << "..." <<endl;
 
-	cout << "Cloning tuio packets to port: " << OUTPUT_PORT << endl;
+	cout << "Output packets to port: " << OUTPUT_PORT << endl;
 
 	oscListener.listener = collector;
 	oscListener.inSock	= &s;

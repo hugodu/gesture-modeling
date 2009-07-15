@@ -44,14 +44,19 @@ public:
 		}
 		else if(strcmp(actionString, "classify") == 0)
 		{
-			vector<string> recognized = recognizer.classify(currSample);
-			result.push_back("recognized");
-			for(size_t i = 0; i < recognized.size(); i++)
-				result.push_back(recognized[i]);
+			if(currSample.size() > 0)
+			{
+				vector<string> recognized = recognizer.classify(&currSample);
 
-			cout << "!! *** !! Recognized : " << recognized[0] << endl;
-			currSample.clear();
-			samples.clear(); //No reason to hold on to samples currently
+				result.push_back("recognized");
+				for(size_t i = 0; i < recognized.size(); i++)
+					result.push_back(recognized[i]);
+
+				cout << "!! *** !! Recognized : " << recognized[0] << endl;
+				currSample.clear();
+				samples.clear(); //No reason to hold on to samples currently
+
+			}
 		}
 		else if(strcmp(actionString, "save") == 0)
 		{
