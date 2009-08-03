@@ -44,6 +44,10 @@
 #include <boost/assign/std/vector.hpp>
 #include <boost/foreach.hpp>
 
+#include <ame/patterns/serialize/task/filtered_classification.hpp>
+#include <ame/observations/serialize/dynamic_vector.hpp>
+#include <ame/patterns/serialize/model/ahmm.hpp>
+
 #include <ame/patterns/task/filtered_classification.hpp>
 //#include <ame/patterns/model/chain_skip_hmm.hpp>
 #include <ame/patterns/model/gesture_hmm.hpp>
