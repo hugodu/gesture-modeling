@@ -420,6 +420,12 @@ public:
                 probabilities();
     }
 
+    void clear()
+    {
+    	mClassificationTask = new gesture_task_type;
+    	mLastRecognition = -1;
+    }
+
     friend class boost::serialization::access;
     template<class Archive>
     void serialize(Archive & ar, const unsigned int version)

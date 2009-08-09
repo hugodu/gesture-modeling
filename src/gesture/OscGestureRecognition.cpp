@@ -46,6 +46,8 @@ public:
 		{
 			if(currSample.size() > 0)
 			{
+				//Check if the gestures has no movement.
+				bool sampleIsStatic = currSample.isStatic();
 				vector<string> recognized = recognizer.classify(&currSample);
 
 				result.push_back("recognized");
@@ -72,7 +74,15 @@ public:
 			result.push_back("loaded");
 			result.push_back(actionParam);
 		}
-
+		else if(strcmp(actionString, "clear") == 0)
+		{
+			cout << "Clearing current GestureSet" <<endl;
+			recognizer.clearGestureSet();
+		}
+		else
+		{
+			result.push_back("Action not supported");
+		}
 		return result;
 	}
 };

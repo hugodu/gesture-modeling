@@ -55,6 +55,7 @@ public:
 		try
 		{
 			osc::ReceivedMessageArgumentIterator arg = m.ArgumentsBegin();
+			//This block is used for training. /gestr/sample messages can be passed by any app
 			if (strcmp(m.AddressPattern(), "/gestr/sample") == 0)
 			{
 				//A Sample is being received, Send event to listeners.
@@ -100,6 +101,7 @@ public:
 				else
 					cout << "MsgParseError";
 			}
+			//
 			else if (strcmp(m.AddressPattern(), "/gestr/action") == 0)
 			{
 				const char* actionString 	= (arg++)->AsString();
@@ -125,7 +127,8 @@ public:
 
 			}
 			//Handle stream from CCV
-			//This section handles only the cloning of the stream to OUTPUT_PORT
+			//This section handles the cloning of the stream to OUTPUT_PORT
+			//Segmentation of gestures will also be handled in this block.
 			else if (strcmp(m.AddressPattern(), "/tuio/2Dcur") == 0)
 			{
 
@@ -191,7 +194,25 @@ public:
 					else if(endSample) //Don't end a sample when starting it.
 					{
 						listener->endSample();
-						listener->gestureAction("classify", "");
+						outStream->Clear();
+						vector<string> actionResult = listener->gestureAction("classify", 0);
+						if(actionResult.size() > 2)
+						{
+							if(!outStream->IsBundleInProgress())
+								*outStream << osc::BeginBundleImmediate;
+							*outStream 	<< osc::BeginMessage("/gestr/action");
+							cout << "CLassified" << "\n\tResult: ";
+							for(size_t i = 0; i < actionResult.size(); i++)
+							{
+								*outStream << actionResult[i].c_str();
+								cout << actionResult[i] << ", ";
+							}
+							*outStream 	<< osc::EndMessage;
+							cout << endl;
+							//These are important messages. Send the stream asap.
+							sendStream();
+						}
+
 					}
 				}
 				else if(strcmp(param, "fseq") == 0)

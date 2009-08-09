@@ -11,9 +11,6 @@
 
 using namespace std;
 
-#define NUM_DIMS 7
-
-
 void Tokenize(const string& str,
 		vector<string>& tokens,
 		const string& delimiters = " ")
@@ -38,6 +35,7 @@ void Tokenize(const string& str,
 
 class Contact {
 public:
+	const static int num_dims = 7;
 	int id;
 	float x, y, dx, dy, width, height, pressure;
 
@@ -46,14 +44,14 @@ public:
 	{
 		id = _id;
 
-		x  = atof(vals[id * NUM_DIMS].c_str());
-		y  = atof(vals[id * NUM_DIMS + 1].c_str());
-		dx = atof(vals[id * NUM_DIMS + 2].c_str());
-		dy = atof(vals[id * NUM_DIMS + 3].c_str());
+		x  = atof(vals[id * num_dims].c_str());
+		y  = atof(vals[id * num_dims + 1].c_str());
+		dx = atof(vals[id * num_dims + 2].c_str());
+		dy = atof(vals[id * num_dims + 3].c_str());
 
-		width    = atof(vals[id * NUM_DIMS + 4].c_str());
-		height   = atof(vals[id * NUM_DIMS + 5].c_str());
-		pressure = atof(vals[id * NUM_DIMS + 6].c_str());
+		width    = atof(vals[id * num_dims + 4].c_str());
+		height   = atof(vals[id * num_dims + 5].c_str());
+		pressure = atof(vals[id * num_dims + 6].c_str());
 
 	}
 
@@ -61,25 +59,10 @@ public:
 			float _dx, float _dy,
 			float _width, float _height,
 			float _pressure)
+	: id(_id), x(_x), y(_y), dx(_dx), width(_width), height(_height),pressure(_pressure)
 	{
-		id = _id;
-		x = _x;
-		y = _y;
-		dx = _dx;
-		dy = _dy;
-		width = _width;
-		height = _height;
-		pressure = _pressure;
+
 	}
-
-	void transform(vector<float> vals)
-	{
-		//cout << x << ", " << y << "; ";
-
-		vals.push_back(x);
-		vals.push_back(y);
-	}
-
 };
 
 
@@ -115,7 +98,7 @@ public:
 	{
 		frame.clear();
 	}
-	void push_back(Contact c)
+	void push_back(Contact &c)
 	{
 		frame.push_back(c);
 	}
@@ -155,6 +138,7 @@ public:
 
 class GestureSample{
 public:
+	const static int move_tolerance = 7; //Will vary from screen to screen.
 	vector<ContactSetFrame> sample;
 	GestureSample(){};
 	GestureSample(string sampleStr)
@@ -195,7 +179,7 @@ public:
 	{
 		sample.clear();
 	}
-	void push_back(ContactSetFrame f)
+	void push_back(ContactSetFrame &f)
 	{
 		sample.push_back(f);
 	}
@@ -203,7 +187,6 @@ public:
 	{
 		return sample.size();
 	}
-
 
 	vector<vector<double> > transform()
 	{
@@ -214,6 +197,17 @@ public:
 			transformed.push_back(tempT);
 		}
 		return transformed;
+
+	}
+
+	bool isStatic()
+	{
+		return isStatic(move_tolerance);
+	}
+
+	bool isStatic(double tolerance)
+	{
+		//iterate through frames, check if all points are within tolerance.
 
 	}
 };

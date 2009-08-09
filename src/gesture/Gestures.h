@@ -206,6 +206,11 @@ public:
     	boost::archive::binary_iarchive in(storage);
     	in >> *this;
     }
+    void clearGestureSet()
+    {
+    	gestureNameMap.clear();
+    	classifier.clear();
+    }
 };
 
 
