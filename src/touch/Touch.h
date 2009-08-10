@@ -66,6 +66,7 @@ public:
 };
 
 
+const static int num_dims = 7;
 
 class ContactSetFrame{
 public:
@@ -85,9 +86,9 @@ public:
 		Contact contact;
 		Tokenize(frameStr, vals);
 
-		for (size_t j = 0; j < vals.size(); j+=NUM_DIMS)
+		for (size_t j = 0; j < vals.size(); j+=num_dims)
 		{
-			contact = Contact(j/NUM_DIMS, vals);
+			contact = Contact(j/num_dims, vals);
 			frame.push_back(contact);
 
 		}

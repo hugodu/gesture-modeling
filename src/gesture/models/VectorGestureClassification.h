@@ -151,7 +151,7 @@ public:
 		tY = -meanY;
 		sX = xBounds / (maxX - minX);
 		sY = yBounds / (maxY - minY);
-		cout << "Params: sX:" << sX << " sY:" << sY << " tX:" << tX << " tY:" << tY << endl;
+		//cout << "Params: sX:" << sX << " sY:" << sY << " tX:" << tX << " tY:" << tY << endl;
 
 
 		//Shouldn't be required.
