@@ -263,16 +263,30 @@ private:
 			osc::ReceivedMessageArgumentIterator & arg,
 			const osc::ReceivedMessage & m)
 	{
+		long int numArgs = m.ArgumentCount();
 		Contact contact;
-		contact.id = (arg++)->AsInt32();
-		contact.x = (arg++)->AsFloat();
-		contact.y = (arg++)->AsFloat();
-		contact.dx = (arg++)->AsFloat();
-		contact.dy = (arg++)->AsFloat();
-		arg++;
-		contact.width = (arg++)->AsFloat();
-		contact.height = (arg++)->AsFloat();
-		contact.pressure = 0;
+		if(numArgs == 9) //Most probably from CCV (including the 'set' message)
+		{
+			contact.id = (arg++)->AsInt32();
+			contact.x = (arg++)->AsFloat();
+			contact.y = (arg++)->AsFloat();
+			contact.dx = (arg++)->AsFloat();
+			contact.dy = (arg++)->AsFloat();
+			arg++;
+			contact.width = (arg++)->AsFloat();
+			contact.height = (arg++)->AsFloat();
+			contact.pressure = 0;
+		}
+		else if(numArgs == 7) //From TUIO Simulator (Profile: /tuio/2Dcur set s x y X Y m)
+		{
+			contact.id = (arg++)->AsInt32();
+			contact.x = (arg++)->AsFloat();
+			contact.y = (arg++)->AsFloat();
+			contact.dx = (arg++)->AsFloat();
+			contact.dy = (arg++)->AsFloat();
+			arg++; //We don't really use motion acceleration ... yet.
+		}
+
 		if (arg != m.ArgumentsEnd())
 			throw osc::ExcessArgumentException();
 		return contact;
