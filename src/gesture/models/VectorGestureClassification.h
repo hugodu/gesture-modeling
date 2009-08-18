@@ -174,7 +174,7 @@ public:
 			return true;
 		else
 		{
-			cout << "\n---\nSample Ignored: Expected Dimensions: " << numFingers * 2 << ", have " << sample[0].size() << " with size: " << sample.size() << endl;
+			//cout << "\n---\nSample Ignored: Expected Dimensions: " << numFingers * 2 << ", have " << sample[0].size() << " with size: " << sample.size() << endl;
 			return false;
 		}
 	}

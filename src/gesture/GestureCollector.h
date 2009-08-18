@@ -8,7 +8,7 @@
  */
 
 #ifndef GESTURECOLLECTOR_H_
-#define GESTUREECOLLECTOR_H_
+#define GESTURECOLLECTOR_H_
 
 #include <iostream>
 #include <string.h>
@@ -28,40 +28,68 @@ public:
 	~GestureCollector()
 	{
 	}
-	GestureSample currSample;
+	GestureSample currGestureSegment;
 	string gestureName;
 	std::vector<GestureSample> samples;
 
 	void updateFrame(ContactSetFrame c)
 	{
+//		//If we are saving a segment, ensure subsequent frame has same number of fingers.
+//		if(currGestureSegment.size() > 0 && currGestureSegment.lastFrameSize() != c.size())
+//			return; //Ignore frames with different number of fingers.
 		if(appendFrames)
-			currSample.push_back(c);
+			currGestureSegment.push_back(c);
 	}
 
 	void endSample()
 	{
 		appendFrames = false;
-		if(currSample.size() > 0)
+
+		if(currGestureSegment.size() > 0)
 		{
-			samples.push_back(currSample);
-			cout << "Collected: " << samples.size() << " samples. Last sample size:" << currSample.size() << endl;
+			samples.push_back(currGestureSegment);
+			cout << "Collected: " << samples.size() << " samples. Last sample size:" << currGestureSegment.size() << endl;
 		}
-
-
 		//		currSample.printSample();
+	}
+
+	void clearSample()
+	{
+		currGestureSegment.clear();
+		appendFrames = false;
 	}
 
 	void startSample(const char* gestName)
 	{
 		//clear sample and start appending frames
 		gestureName = gestName;
-		//cout << "Start Sample, Clearing: " << currSample.size() << endl;
+		cout << "Start Sample, Had frames: " << currGestureSegment.size() << endl;
 //		for(size_t i = 0; i < currSample.size(); i++)
 //			cout << "\t" << i << ": " << currSample.sample[i].size() << endl;
-		currSample.clear();
+		currGestureSegment.clear();
 		appendFrames = true;
 	}
 
+	/**
+	 * The sample currently in the buffer has stopped moving.
+	 * Check last frame with previous n frames with a tolerance.
+	 */
+	bool sampleIsNowStatic()
+	{
+		return currGestureSegment.isStatic(10);
+	}
+
+	/**
+	 * If the sample consists only of static frames.
+	 */
+	bool sampleIsOnlyStatic()
+	{
+		return currGestureSegment.isOnlyStatic();
+	}
+	size_t sampleSize()
+	{
+		return currGestureSegment.size();
+	}
 	/*
 	 * Default implementation of gesture actions
 	 */

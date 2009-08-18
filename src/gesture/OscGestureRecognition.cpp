@@ -38,27 +38,28 @@ public:
 		vector<string> result;
 		if(strcmp(actionString, "train") == 0)
 		{
-			if(samples.size() > 2)
+			if(samples.size() > 2) //Atleast 2 samples to train a gesture
 				result = recognizer.trainWithSamples(samples, gestureName);
 			samples.clear();
 		}
 		else if(strcmp(actionString, "classify") == 0)
 		{
-			if(currSample.size() > 0)
+			//We require atleast 5 frames to classify a gesture. Avoid noise
+			//Check if the gestures has no movement.
+			if(currGestureSegment.isOnlyStatic() || currGestureSegment.size() < 10)
 			{
-				//Check if the gestures has no movement.
-				bool sampleIsStatic = currSample.isStatic();
-				vector<string> recognized = recognizer.classify(&currSample);
-
-				result.push_back("recognized");
-				for(size_t i = 0; i < recognized.size(); i++)
-					result.push_back(recognized[i]);
-
-				cout << "!! *** !! Recognized : " << recognized[0] << endl;
-				currSample.clear();
-				samples.clear(); //No reason to hold on to samples currently
-
+				cout << "Ignoring Sample: Hasn't moved" << endl;
+				return result;
 			}
+			vector<string> recognized = recognizer.classify(&currGestureSegment);
+
+			result.push_back("recognized");
+			for(size_t i = 0; i < recognized.size(); i++)
+				result.push_back(recognized[i]);
+
+			cout << "!! *** !! Recognized : " << recognized[0] << endl;
+			currGestureSegment.clear();
+			samples.clear(); //No reason to hold on to samples currently
 		}
 		else if(strcmp(actionString, "save") == 0)
 		{

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cmath>
 
 #include <touch/Touch.h>
 #include <gesture/models/VectorGestureClassification.h>
@@ -95,10 +96,11 @@ class RecognitionHelper
 public:
 	VectorGestureClassification classifier;
 	map<int, string> 			gestureNameMap;
+	map<string, vector<string> > gestureNameToParametersMap;
 
 	RecognitionHelper()
 	{}
-	vector<string> trainWithSamples(vector<GestureSample> trainingSet, string gestureName)
+	vector<string> trainWithSamples(const vector<GestureSample> trainingSet, string gestureName)
 	{
 		vector<string> result;
 		VectorGestureClassification tempClassifier;
@@ -174,6 +176,7 @@ public:
 
 			result.push_back(boost::lexical_cast<std::string>(-filter->tX));
 			result.push_back(boost::lexical_cast<std::string>(-filter->tY));
+
 		}
 		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
 			result.push_back("None");
@@ -213,6 +216,47 @@ public:
     }
 };
 
+/**
+ * Instances of this class will allow a vector to be translated into
+ * a sequence of parameters
+ */
+class gesture_parameterization
+{
+public:
 
+	gesture_parameterization(){}
+
+	gesture_parameterization(const char* paramString)
+	{
+		//Temporary test for only distance
+		cout << "Initing gesture Parameters: " << paramString << endl;
+		//TODO: parse the parameter specification scheme.
+		//fing_dist 0 1 	| will generate a parameter providing distance between two fingers
+		//fing_x 0 			| will make x coord of finger 0 a parameter
+		//fing_y 1			| will make y coord of finger 1 a parameter
+		//fing_angle 0 1	| will calculate angle made by line from 0 to 1 with the positive x.
+		//delta fing_x 1	| will keep track of last value of x, and send only the change in fing_x
+		//dist 0 mean_xy 1 2| will first calculate the mean of fingers 1,2 and then calculate dist between mean and finger 0
+	}
+
+	/**
+	 * Accepts the input frame, processes and converts to a sequence of
+	 * requested parameters
+	 */
+	vector<double> operator()(ContactSetFrame & contactFrame) const
+	{
+		vector<double> result;
+		vector<Contact> frame = contactFrame.frame;
+
+		if(frame.size() < 2) // atleast two fingers required for this test
+			return result;
+		double dx = (frame[0].x - frame[1].x);
+		double dy = (frame[0].y - frame[1].y);
+		double dist = sqrt(dx*dx + dy*dy);
+		result.push_back(dist);
+		cout << "Dist Param: " << dist << endl;
+		return result;
+	}
+};
 
 #endif /* GESTURES_H_ */

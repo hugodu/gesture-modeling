@@ -8,30 +8,11 @@
 #define _TOUCH_H
 
 #include <vector>
-
+#include <cmath>
+#include <iostream>
+#include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
 using namespace std;
-
-void Tokenize(const string& str,
-		vector<string>& tokens,
-		const string& delimiters = " ")
-{
-	// Skip delimiters at beginning.
-	string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-	// Find first "non-delimiter".
-	string::size_type pos     = str.find_first_of(delimiters, lastPos);
-
-	while (string::npos != pos || string::npos != lastPos)
-	{
-		// Found a token, add it to the vector.
-		tokens.push_back(str.substr(lastPos, pos - lastPos));
-		// Skip delimiters.  Note the "not_of"
-		lastPos = str.find_first_not_of(delimiters, pos);
-		// Find next "non-delimiter"
-		pos = str.find_first_of(delimiters, lastPos);
-	}
-}
-
-
 
 class Contact {
 public:
@@ -72,7 +53,7 @@ class ContactSetFrame{
 public:
 	vector<Contact> frame;
 	ContactSetFrame(){};
-	ContactSetFrame(string frameStr)
+	ContactSetFrame(string &frameStr)
 	{
 		int pos = frameStr.find("[");
 		while(pos >=0)
@@ -84,17 +65,17 @@ public:
 		//Num samples = number of tokens / NUM_DIMS;
 		vector<string> vals;
 		Contact contact;
-		Tokenize(frameStr, vals);
+		boost::tokenizer<> tok(frameStr);
+		for(boost::tokenizer<>::iterator token=tok.begin(); token != tok.end(); ++token)
+			vals.push_back(*token);
 
 		for (size_t j = 0; j < vals.size(); j+=num_dims)
 		{
 			contact = Contact(j/num_dims, vals);
 			frame.push_back(contact);
-
 		}
 		//printFrame();
 	}
-
 	void clear()
 	{
 		frame.clear();
@@ -103,6 +84,12 @@ public:
 	{
 		frame.push_back(c);
 	}
+
+	Contact getContact(int contactIndex)
+	{
+		return frame[contactIndex];
+	}
+
 	vector<double> transform()
 	{
 		vector<double> transformed;
@@ -116,15 +103,28 @@ public:
 			" Expected: " << frame.size() * 2 <<endl;
 
 		return transformed;
+	}
 
+	bool isWithinTolerance(ContactSetFrame& otherFrame, double tolerance)
+	{
+		bool isStatic = true;
+		if(frame.size() != otherFrame.size())
+			return false;
+
+		for(size_t fingerNum = 0; fingerNum < frame.size(); fingerNum++)
+		{
+			Contact c 	= frame[fingerNum];
+			Contact lc 	= otherFrame.getContact(fingerNum);
+			if(abs(c.x - lc.x) > tolerance || abs(c.y - lc.y) > tolerance)
+				isStatic = false;
+		}
+		return isStatic;
 	}
 
 	size_t size()
 	{
 		return frame.size();
 	}
-
-
 	void printFrame()
 	{
 		vector<Contact>::iterator contact;
@@ -139,7 +139,7 @@ public:
 
 class GestureSample{
 public:
-	const static int move_tolerance = 7; //Will vary from screen to screen.
+	const static double move_tolerance = .003; //Will vary from screen to screen.
 	vector<ContactSetFrame> sample;
 	GestureSample(){};
 	GestureSample(string sampleStr)
@@ -147,20 +147,16 @@ public:
 		vector<string> frames;
 		ContactSetFrame frame;
 
-		Tokenize(sampleStr, frames, "];");
-		//cout << sampleStr << endl << endl << endl;
-		//cout << "---------------------------------" << endl << "Frames: " << frames.size() << endl;
 
-		for (size_t i = 0; i < frames.size(); i++)
+		boost::char_separator<char> sep("];");
+		boost::tokenizer<boost::char_separator<char> > tokens(sampleStr, sep);
+
+		BOOST_FOREACH(string frameStr, tokens)
 		{
-			string frameStr = frames[i];
 			frame = ContactSetFrame(frameStr);
-
 			if(frame.size() > 0)
 				sample.push_back(frame);
 		}
-		//printSample();
-
 	}
 
 	void printSample()
@@ -184,6 +180,17 @@ public:
 	{
 		sample.push_back(f);
 	}
+
+	/**
+	 * Number of fingers in the last frame
+	 */
+	size_t lastFrameSize()
+	{
+		if(sample.size() <= 0)
+			return 0;
+		return sample[sample.size() - 1].size();
+	}
+
 	size_t size()
 	{
 		return sample.size();
@@ -201,15 +208,40 @@ public:
 
 	}
 
-	bool isStatic()
+	bool isStatic(int numFrames)
 	{
-		return isStatic(move_tolerance);
+		return isStatic(move_tolerance, numFrames);
 	}
 
-	bool isStatic(double tolerance)
+	bool isStatic(double tolerance, unsigned int numFrames)
 	{
 		//iterate through frames, check if all points are within tolerance.
+		if(sample.size() < numFrames)
+			return false; // samples of frame size < 10 are not considered static
+		ContactSetFrame lastFrame = sample[sample.size() - 1]; // Check with the latest frame
 
+		bool isStatic = true;
+		for(size_t frameNum = sample.size() - 2; frameNum >= sample.size() - numFrames && isStatic == true; frameNum--)
+		{
+			//For each finger, the x,y vals should be within tolerance of lastFrame
+			isStatic = sample[frameNum].isWithinTolerance(lastFrame, tolerance);
+		}
+		if(isStatic)
+		{
+			//Clear the last numFrames of the sample, since they haven't moved
+			sample.erase(sample.end() - (numFrames + 1), sample.end());
+		}
+		return isStatic;
+	}
+
+	bool isOnlyStatic()
+	{
+		if(sample.size() == 0)
+			return false;
+		bool result = isStatic(sample.size());
+		if(result)
+			cout << "Sample is only Static" << endl;
+		return result;
 	}
 };
 
