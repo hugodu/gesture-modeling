@@ -95,8 +95,12 @@ public:
 	 */
 	virtual vector<string> gestureAction(const char* actionString, const char* actionParam)
 	{
-		vector<string> result;
-		return result;
+		return vector<string>();
+	}
+
+	virtual vector<double> parameterize()
+	{
+		return vector<double>();
 	}
 };
 #endif /* GESTURELEARNER_H_ */

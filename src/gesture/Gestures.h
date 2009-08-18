@@ -17,12 +17,14 @@
 
 #include <touch/Touch.h>
 #include <gesture/models/VectorGestureClassification.h>
+#include <gesture/GestureParameterization.h>
 
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 using namespace std;
 //For debug and test
@@ -94,9 +96,10 @@ vector<vector<vector<double> > > transformSamples(vector<GestureSample> samples)
 class RecognitionHelper
 {
 public:
-	VectorGestureClassification classifier;
-	map<int, string> 			gestureNameMap;
-	map<string, vector<string> > gestureNameToParametersMap;
+	VectorGestureClassification 			classifier;
+	map<int, string> 						gestureNameMap;
+	map<string, gesture_parameterization > 	gestureNameToParametersMap;
+	string									lastGesture;
 
 	RecognitionHelper()
 	{}
@@ -148,6 +151,7 @@ public:
 		return result;
 	}
 
+
 	/**
 	 *
 	 */
@@ -172,10 +176,12 @@ public:
 		{
 			//FIXME: More structure may help future cases
 			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
-			result.push_back(gestureNameMap[classIndex]);
+			lastGesture = gestureNameMap[classIndex];
 
-			result.push_back(boost::lexical_cast<std::string>(-filter->tX));
-			result.push_back(boost::lexical_cast<std::string>(-filter->tY));
+			result.push_back(lastGesture);
+
+			result.push_back(boost::lexical_cast<string>(-filter->tX));
+			result.push_back(boost::lexical_cast<string>(-filter->tY));
 
 		}
 		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
@@ -184,7 +190,7 @@ public:
 
 	}
 
-	const std::vector<long double> &probabilities() const
+	const vector<long double> &probabilities() const
 	{
 	    return classifier.probabilities();
 	}
@@ -194,6 +200,8 @@ public:
     {
         ar & classifier;
         ar & gestureNameMap;
+        //TODO Uncomment following line after fixing gesture_parameterization serialization
+        //ar & gestureNameToParametersMap;
     }
 
     void saveGestureSet(const char* appName)
@@ -214,49 +222,20 @@ public:
     	gestureNameMap.clear();
     	classifier.clear();
     }
-};
 
-/**
- * Instances of this class will allow a vector to be translated into
- * a sequence of parameters
- */
-class gesture_parameterization
-{
-public:
+    vector<double> parameterize(ContactSetFrame & frame)
+    {
+    	typedef map<string, gesture_parameterization> mapGP;
+    	mapGP::iterator iter;
 
-	gesture_parameterization(){}
-
-	gesture_parameterization(const char* paramString)
-	{
-		//Temporary test for only distance
-		cout << "Initing gesture Parameters: " << paramString << endl;
-		//TODO: parse the parameter specification scheme.
-		//fing_dist 0 1 	| will generate a parameter providing distance between two fingers
-		//fing_x 0 			| will make x coord of finger 0 a parameter
-		//fing_y 1			| will make y coord of finger 1 a parameter
-		//fing_angle 0 1	| will calculate angle made by line from 0 to 1 with the positive x.
-		//delta fing_x 1	| will keep track of last value of x, and send only the change in fing_x
-		//dist 0 mean_xy 1 2| will first calculate the mean of fingers 1,2 and then calculate dist between mean and finger 0
-	}
-
-	/**
-	 * Accepts the input frame, processes and converts to a sequence of
-	 * requested parameters
-	 */
-	vector<double> operator()(ContactSetFrame & contactFrame) const
-	{
-		vector<double> result;
-		vector<Contact> frame = contactFrame.frame;
-
-		if(frame.size() < 2) // atleast two fingers required for this test
-			return result;
-		double dx = (frame[0].x - frame[1].x);
-		double dy = (frame[0].y - frame[1].y);
-		double dist = sqrt(dx*dx + dy*dy);
-		result.push_back(dist);
-		cout << "Dist Param: " << dist << endl;
-		return result;
-	}
+    	//Get the last gesture classified, verify that it contains parameters
+    	iter = gestureNameToParametersMap.find(lastGesture);
+    	if(iter != gestureNameToParametersMap.end())
+    	{
+   			return (iter->second)(frame);
+    	}
+    	return vector<double>();
+    }
 };
 
 #endif /* GESTURES_H_ */

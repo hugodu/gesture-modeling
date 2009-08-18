@@ -66,8 +66,12 @@ public:
 		vector<string> vals;
 		Contact contact;
 		boost::tokenizer<> tok(frameStr);
-		for(boost::tokenizer<>::iterator token=tok.begin(); token != tok.end(); ++token)
-			vals.push_back(*token);
+		BOOST_FOREACH(string token, tok)
+		{
+			vals.push_back(token);
+		}
+//		for(boost::tokenizer<>::iterator token=tok.begin(); token != tok.end(); ++token)
+//			vals.push_back(*token);
 
 		for (size_t j = 0; j < vals.size(); j+=num_dims)
 		{

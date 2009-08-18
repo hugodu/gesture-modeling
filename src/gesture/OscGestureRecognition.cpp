@@ -44,8 +44,8 @@ public:
 		}
 		else if(strcmp(actionString, "classify") == 0)
 		{
-			//We require atleast 5 frames to classify a gesture. Avoid noise
-			//Check if the gestures has no movement.
+			//We require atleast 5 frames to classify a gesture.
+			//Check if the gestures has no movement to avoid noise.
 			if(currGestureSegment.isOnlyStatic() || currGestureSegment.size() < 10)
 			{
 				cout << "Ignoring Sample: Hasn't moved" << endl;
@@ -85,6 +85,11 @@ public:
 			result.push_back("Action not supported");
 		}
 		return result;
+	}
+
+	virtual vector<double> parameterize()
+	{
+		return recognizer.parameterize(currGestureSegment.sample[currGestureSegment.size() - 1]);
 	}
 };
 

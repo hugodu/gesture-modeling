@@ -158,6 +158,7 @@ public:
 					if (actionResult.size() > 2)
 					{
 						sendGestrActionResults(gestrAction, actionResult);
+
 						if(actionResult[1] == "rotateRight") // Test case
 						{
 							isParameterizing = true;
@@ -172,14 +173,17 @@ public:
 			if (!outStream->IsBundleInProgress())
 				*outStream << osc::BeginBundleImmediate;
 
-			*outStream << osc::BeginMessage("/tuio/2Dcur") << "fseq" << 0
-					<< osc::EndMessage;
+			*outStream << osc::BeginMessage("/tuio/2Dcur") << "fseq" << (arg++)->AsInt32() << osc::EndMessage;
 			*outStream << osc::EndBundle;
 			if (!gestrSampleStart && liveFrame.size() > 0)
 			{
 				listener->updateFrame(liveFrame);
 				if(isParameterizing)
-					sendGestrParams(liveFrame);
+				{
+					vector<double> params = listener->parameterize();
+					sendGestrParams(params);
+				}
+
 				liveFrame.clear();
 			}
 			sendStream();
@@ -213,7 +217,6 @@ public:
 	}
 
 private:
-	gesture_parameterization distParam;
 
 	void initOutStream()
 	{
@@ -310,17 +313,14 @@ private:
 		cout << endl;
 		sendStream();
 	}
-	void sendGestrParams(ContactSetFrame & frame)
+	void sendGestrParams(vector<double> params)
 	{
 		if (!outStream->IsBundleInProgress())
 			*outStream << osc::BeginBundleImmediate;
-
 		*outStream << osc::BeginMessage("/gestr/action");
-
-		vector<double> frameParams = distParam(frame);
-		for (size_t i = 0; i < frameParams.size(); i++)
+		BOOST_FOREACH(double param, params)
 		{
-			*outStream << frameParams[i];
+			*outStream << param;
 		}
 		*outStream << osc::EndMessage;
 		sendStream();
