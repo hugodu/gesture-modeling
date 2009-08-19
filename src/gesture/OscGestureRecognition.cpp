@@ -32,7 +32,7 @@ public:
 
 	}
 
-	virtual vector<string> gestureAction(const char* actionString, const char* actionParam)
+	virtual vector<string> gestureAction(const char* actionString, vector<string> actionParams)
 	{
 		cout << "Action: " << actionString << endl;
 		vector<string> result;
@@ -54,8 +54,9 @@ public:
 			vector<string> recognized = recognizer.classify(&currGestureSegment);
 
 			result.push_back("recognized");
-			for(size_t i = 0; i < recognized.size(); i++)
-				result.push_back(recognized[i]);
+			//Pass params returned by recognizer classification into result.
+			BOOST_FOREACH(string val, recognized)
+				result.push_back(val);
 
 			cout << "!! *** !! Recognized : " << recognized[0] << endl;
 			currGestureSegment.clear();
@@ -63,22 +64,27 @@ public:
 		}
 		else if(strcmp(actionString, "save") == 0)
 		{
-			cout << "Saving GestureSet as: " << actionParam << endl;
-			recognizer.saveGestureSet(actionParam);
+			cout << "Saving GestureSet as: " << actionParams[0] << endl;
+			recognizer.saveGestureSet(actionParams[0]);
 			result.push_back("saved");
-			result.push_back(actionParam);
+			result.push_back(actionParams[0]);
 		}
 		else if(strcmp(actionString, "load") == 0)
 		{
-			cout << "Loading GestureSet: " << actionParam << endl;
-			recognizer.loadGestureSet(actionParam);
+			cout << "Loading GestureSet: " << actionParams[0] << endl;
+			recognizer.loadGestureSet(actionParams[0]);
 			result.push_back("loaded");
-			result.push_back(actionParam);
+			result.push_back(actionParams[0]);
 		}
 		else if(strcmp(actionString, "clear") == 0)
 		{
 			cout << "Clearing current GestureSet" <<endl;
 			recognizer.clearGestureSet();
+		}
+		else if(strcmp(actionString, "parameterize") == 0)
+		{
+			cout << "Attempting to parameterize gesture" << endl;
+			result = recognizer.addParameterToGesture(actionParams);
 		}
 		else
 		{

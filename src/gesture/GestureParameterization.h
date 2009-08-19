@@ -160,41 +160,50 @@ public:
 
 	gesture_parameterization(){}
 
+	gesture_parameterization(namedPairT namedPair)
+	{
+		addParameter(namedPair);
+	}
+
 	gesture_parameterization(namedParamVectorT namedParamStrings)
 	{
 		//Each string is a parameter.
 		BOOST_FOREACH(namedPairT namedPair, namedParamStrings)
 		{
-			string paramName = namedPair.first;
-			string paramString = namedPair.second;
-			cout << "Instantiating gesture parameter: " << paramString << endl;
-
-			//Instantiate the appropriate parameter class and add to the params vector.
-			boost::tokenizer<> tok(paramString);
-			boost::tokenizer<>::iterator token=tok.begin();
-			if(*token == "fing_dist")
-			{
-				int fing_index1 = boost::lexical_cast<int>(*++token);
-				int fing_index2 = boost::lexical_cast<int>(*++token);
-				namedParamsMap.insert(paramName , new fing_dist_parameter(fing_index1,fing_index2));
-			}
-			else if(*token == "fing_x")
-			{
-				int fing_index = boost::lexical_cast<int>(*++token);
-				namedParamsMap.insert(paramName ,  new fing_x_parameter(fing_index));
-			}
-			else if(*token == "fing_y")
-			{
-				int fing_index = boost::lexical_cast<int>(*++token);
-				namedParamsMap.insert(paramName ,  new fing_y_parameter(fing_index));
-			}
-			else if(*token == "all_mean")
-			{
-				namedParamsMap.insert(paramName , new all_mean_parameter());
-			}
+			addParameter(namedPair);
 		}
 	}
 
+	void addParameter(namedPairT namedPair)
+	{
+		string paramName = namedPair.first;
+		string paramString = namedPair.second;
+		cout << "Instantiating gesture parameter: " << paramString << endl;
+
+		//Instantiate the appropriate parameter class and add to the params vector.
+		boost::tokenizer<> tok(paramString);
+		boost::tokenizer<>::iterator token=tok.begin();
+		if(*token == "fing_dist")
+		{
+			int fing_index1 = boost::lexical_cast<int>(*++token);
+			int fing_index2 = boost::lexical_cast<int>(*++token);
+			namedParamsMap.insert(paramName , new fing_dist_parameter(fing_index1,fing_index2));
+		}
+		else if(*token == "fing_x")
+		{
+			int fing_index = boost::lexical_cast<int>(*++token);
+			namedParamsMap.insert(paramName ,  new fing_x_parameter(fing_index));
+		}
+		else if(*token == "fing_y")
+		{
+			int fing_index = boost::lexical_cast<int>(*++token);
+			namedParamsMap.insert(paramName ,  new fing_y_parameter(fing_index));
+		}
+		else if(*token == "all_mean")
+		{
+			namedParamsMap.insert(paramName , new all_mean_parameter());
+		}
+	}
 	/**
 	 * Parameterization call
 	 */

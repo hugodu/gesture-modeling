@@ -84,13 +84,12 @@ public:
 	void handleGestrAction(osc::ReceivedMessageArgumentIterator & arg,
 			const osc::ReceivedMessage & m)
 	{
-		const char *actionString = (arg++)->AsString();
-		const char *actionParam = "none";
-		if (arg != m.ArgumentsEnd())
-			actionParam = (arg++)->AsString();
+		const char *actionString 	= (arg++)->AsString();
+		vector<string> actionParams;
+		while (arg != m.ArgumentsEnd())
+			actionParams.push_back((arg++)->AsString());
 
-		vector<string> actionResult = listener->gestureAction(actionString,
-				actionParam);
+		vector<string> actionResult = listener->gestureAction(actionString, actionParams);
 		sendGestrActionResults(actionString, actionResult);
 	}
 
@@ -154,7 +153,7 @@ public:
 					listener->endSample();
 					outStream->Clear();
 					const char* gestrAction = "classify";
-					vector<string> actionResult = listener->gestureAction(gestrAction, 0);
+					vector<string> actionResult = listener->gestureAction(gestrAction, vector<string>());
 					if (actionResult.size() > 2)
 					{
 						sendGestrActionResults(gestrAction, actionResult);

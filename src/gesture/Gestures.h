@@ -156,6 +156,32 @@ public:
 		return result;
 	}
 
+	/**
+	 * parameterStrings are of the following format, with 3 strings:
+	 * gesture_name parameter_name parameter_string
+	 */
+	typedef pair<string, string> namedPairT;
+	vector<string> addParameterToGesture(vector<string> parameterStrings)
+	{
+    	mapGP::iterator iter;
+
+    	iter = gestureNameToParametersMap.find(parameterStrings[0]);
+    	namedPairT namedParamStringPair(parameterStrings[1], parameterStrings[2]);
+    	if(iter == gestureNameToParametersMap.end())
+    	{
+    		//No parameters exist for this gesture. Create a gesture_parameterization object with this parameter
+    		gesture_parameterization parameterization(namedParamStringPair);
+    		gestureNameToParametersMap[parameterStrings[0]] = parameterization;
+    	}
+    	else
+    		iter->second->addParameter(namedParamStringPair);
+
+    	vector<string> result;
+    	result.push_back("Parameter" + parameterStrings[1] +
+    			" successfully added to gesture: " + parameterStrings[0] +
+    			" with parameter string: " + parameterStrings[2]);
+    	return result;
+	}
 
 	/**
 	 *
@@ -164,14 +190,14 @@ public:
 	{
 		vector<string> result;
 		vector<vector<double> > transformed = sample->transform();
-		//printTransform(transformed);
+
 		int classIndex = classifier.classify(transformed);
 		vector<long double> probs = classifier.probabilities();
 
 		bool allZero = true;
 		for(unsigned int i = 0 ; i < probs.size(); i++)
 		{
-			if(probs[i] > 0)
+			if(allZero && probs[i] > 0)
 				allZero = false;
 			cout << probs[i] << ", ";
 		}
@@ -179,7 +205,7 @@ public:
 
 		if(!allZero && classIndex >= 0 && ((unsigned int)classIndex) < gestureNameMap.size())
 		{
-			//FIXME: More structure may help future cases
+			//TODO: More structure may help future cases
 			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
 			lastGesture = gestureNameMap[classIndex];
 
@@ -195,6 +221,19 @@ public:
 
 	}
 
+    map<string, vector<double> > parameterize(ContactSetFrame & frame)
+    {
+    	mapGP::iterator iter;
+
+    	//Get the last gesture classified, verify that it contains parameters
+    	iter = gestureNameToParametersMap.find(lastGesture);
+    	if(iter != gestureNameToParametersMap.end())
+    	{
+   			return iter->second->operator()(frame);
+    	}
+    	return map<string, vector<double> >();
+    }
+
 	const vector<long double> &probabilities() const
 	{
 	    return classifier.probabilities();
@@ -208,16 +247,16 @@ public:
         ar & gestureNameToParametersMap;
     }
 
-    void saveGestureSet(const char* appName)
+    void saveGestureSet(string appName)
     {
-    	ofstream storage(appName, ios::out | ios::binary);
+    	ofstream storage(appName.c_str(), ios::out | ios::binary);
     	boost::archive::binary_oarchive out(storage);
     	out << *this;
     }
 
-    void loadGestureSet(const char* appName)
+    void loadGestureSet(string appName)
     {
-    	ifstream storage(appName, ios::in | ios::binary);
+    	ifstream storage(appName.c_str(), ios::in | ios::binary);
     	boost::archive::binary_iarchive in(storage);
     	in >> *this;
     }
@@ -227,18 +266,7 @@ public:
     	classifier.clear();
     }
 
-    map<string, vector<double> > parameterize(ContactSetFrame & frame)
-    {
-    	mapGP::iterator iter;
 
-    	//Get the last gesture classified, verify that it contains parameters
-    	iter = gestureNameToParametersMap.find(lastGesture);
-    	if(iter != gestureNameToParametersMap.end())
-    	{
-   			return iter->second->operator()(frame);
-    	}
-    	return map<string, vector<double> >();
-    }
 };
 
 #endif /* GESTURES_H_ */

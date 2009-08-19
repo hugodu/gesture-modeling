@@ -96,7 +96,7 @@ public:
 	/*
 	 * Default implementation of gesture actions
 	 */
-	virtual vector<string> gestureAction(const char* actionString, const char* actionParam)
+	virtual vector<string> gestureAction(const char* actionString, vector<string> actionParams)
 	{
 		return vector<string>();
 	}
