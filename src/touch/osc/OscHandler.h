@@ -114,12 +114,12 @@ public:
 
 			if(fingersLowered)
 			{
-				cout << "FingersLowered" << endl;
+//				cout << "FingersLowered" << endl;
 				listener->startSample("");
 			}
 			if(fingersRaised)
 			{
-				cout << "FingersRaised" << endl;
+//				cout << "FingersRaised" << endl;
 				isParameterizing = false;
 			}
 			liveIds = currIds;
@@ -235,8 +235,7 @@ private:
 	{
 		bool fingerLowered = false;
 		for (size_t i = 0; i < currIds.size(); i++)
-			if (find(liveIds.begin(), liveIds.end(), currIds[i])
-					== liveIds.end())
+			if (find(liveIds.begin(), liveIds.end(), currIds[i]) == liveIds.end())
 				fingerLowered = true;
 		return fingerLowered;
 	}
@@ -244,8 +243,7 @@ private:
 	{
 		bool fingerRaised = false;
 		for (size_t i = 0; i < liveIds.size(); i++)
-			if (find(currIds.begin(), currIds.end(), liveIds[i])
-					== currIds.end())
+			if (find(currIds.begin(), currIds.end(), liveIds[i]) == currIds.end())
 				fingerRaised = true;
 		return fingerRaised;
 	}
@@ -309,6 +307,10 @@ private:
 		*outStream << osc::EndMessage;
 		return currIds;
 	}
+
+	/**
+	 * Generic method for any Gestr Action
+	 */
 	void sendGestrActionResults(const char *actionString,
 			vector<string> actionResult)
 	{
@@ -332,6 +334,7 @@ private:
 		if (!outStream->IsBundleInProgress())
 			*outStream << osc::BeginBundleImmediate;
 		*outStream << osc::BeginMessage("/gestr/action");
+		*outStream << "param_update";
 		BOOST_FOREACH(double param, params)
 		{
 			*outStream << param;
