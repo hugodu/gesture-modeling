@@ -14,13 +14,16 @@
 #include <string.h>
 #include <stdio.h>
 #include <cstdlib>
-
+#include <map>
+#include <vector>
 #include "touch/Touch.h"
 
+using namespace std;
 class GestureCollector
 {
 	bool appendFrames;
 public:
+	typedef map<string, vector<double> > paramValMapT;
 
 	GestureCollector()
 	{
@@ -98,9 +101,9 @@ public:
 		return vector<string>();
 	}
 
-	virtual vector<double> parameterize()
+	virtual paramValMapT parameterize()
 	{
-		return vector<double>();
+		return paramValMapT();
 	}
 };
 #endif /* GESTURELEARNER_H_ */

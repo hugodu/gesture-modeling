@@ -14,19 +14,28 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
+#include <boost/ptr_container/serialize_ptr_vector.hpp>
 
 class gesture_parameter
 {
 public:
 	vector<int> fingerIndeces;
+
 	/**
 	 * Dummy operator
 	 */
-	virtual void operator()(ContactSetFrame & contactFrame, vector<double> & result)
+	virtual vector<double> operator()(ContactSetFrame & contactFrame)
 	{
-		return;
+		return vector<double>();
 	}
 
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & fingerIndeces;
+    }
 };
 
 class fing_x_parameter : public gesture_parameter
@@ -36,16 +45,18 @@ public:
 	{
 		fingerIndeces.push_back(fing_index);
 	}
-	virtual void operator()(ContactSetFrame & contactFrame, vector<double> & result)
+	virtual vector<double> operator()(ContactSetFrame & contactFrame)
 	{
+		vector<double> result;
 		const vector<Contact> &frame  = contactFrame.frame;
 		unsigned int fing_index = fingerIndeces[0];
 		if(frame.size() <= fing_index)
 		{
 			cout << "Invalid frame for fing_x with index" << fing_index << endl;
-			return;
+			return result;
 		}
 		result.push_back(frame[fing_index].x);
+		return result;
 	}
 };
 
@@ -56,16 +67,18 @@ public:
 	{
 		fingerIndeces.push_back(fing_index);
 	}
-	virtual void operator()(ContactSetFrame & contactFrame, vector<double> & result)
+	virtual vector<double> operator()(ContactSetFrame & contactFrame)
 	{
+		vector<double> result;
 		const vector<Contact> &frame  = contactFrame.frame;
 		unsigned int fing_index = fingerIndeces[0];
 		if(frame.size() < fing_index)
 		{
 			cout << "Invalid frame for fing_y with index" << fing_index << endl;
-			return;
+			return result;
 		}
 		result.push_back(frame[fing_index].y);
+		return result;
 	}
 };
 /**
@@ -80,17 +93,19 @@ public:
 		fingerIndeces.push_back(finger_index2);
 	}
 
-	virtual void operator()(ContactSetFrame & contactFrame, vector<double> & result)
+	virtual vector<double> operator()(ContactSetFrame & contactFrame)
 	{
+		vector<double> result;
 		const vector<Contact> &frame = contactFrame.frame;
 
 		if(frame.size() < 2) // atleast two fingers required for this test
-			return;
+			return result;
 		double dx = (frame[0].x - frame[1].x);
 		double dy = (frame[0].y - frame[1].y);
 		double dist = sqrt(dx*dx + dy*dy);
 		result.push_back(dist);
 		cout << "Dist Param: " << dist << endl;
+		return result;
 	}
 };
 
@@ -105,8 +120,9 @@ public:
 
 	}
 
-	virtual void operator()(ContactSetFrame & contactFrame, vector<double> & result)
+	virtual vector<double> operator()(ContactSetFrame & contactFrame)
 	{
+		vector<double> result;
 		double meanX = 0;
 		double meanY = 0;
 		BOOST_FOREACH(Contact c, contactFrame.frame)
@@ -118,6 +134,7 @@ public:
 		meanY /= contactFrame.size();
 		result.push_back(meanX);
 		result.push_back(meanY);
+		return result;
 	}
 };
 
@@ -133,15 +150,23 @@ public:
 class gesture_parameterization
 {
 public:
-	boost::ptr_vector<gesture_parameter> params;
+	typedef pair<string, string> namedPairT;
+	typedef pair<string, vector<double> > namedParamValT;
+	typedef vector<namedPairT> namedParamVectorT;
+	typedef pair<string, gesture_parameter> paramPairT;
+	typedef boost::ptr_map<string, gesture_parameter> namedParamMapT;
+
+	namedParamMapT namedParamsMap;
 
 	gesture_parameterization(){}
 
-	gesture_parameterization(vector<string> paramStrings)
+	gesture_parameterization(namedParamVectorT namedParamStrings)
 	{
 		//Each string is a parameter.
-		BOOST_FOREACH(string paramString, paramStrings)
+		BOOST_FOREACH(namedPairT namedPair, namedParamStrings)
 		{
+			string paramName = namedPair.first;
+			string paramString = namedPair.second;
 			cout << "Instantiating gesture parameter: " << paramString << endl;
 
 			//Instantiate the appropriate parameter class and add to the params vector.
@@ -151,21 +176,21 @@ public:
 			{
 				int fing_index1 = boost::lexical_cast<int>(*++token);
 				int fing_index2 = boost::lexical_cast<int>(*++token);
-				params.push_back(new fing_dist_parameter(fing_index1,fing_index2));
+				namedParamsMap.insert(paramName , new fing_dist_parameter(fing_index1,fing_index2));
 			}
 			else if(*token == "fing_x")
 			{
 				int fing_index = boost::lexical_cast<int>(*++token);
-				params.push_back(new fing_x_parameter(fing_index));
+				namedParamsMap.insert(paramName ,  new fing_x_parameter(fing_index));
 			}
 			else if(*token == "fing_y")
 			{
 				int fing_index = boost::lexical_cast<int>(*++token);
-				params.push_back(new fing_y_parameter(fing_index));
+				namedParamsMap.insert(paramName ,  new fing_y_parameter(fing_index));
 			}
 			else if(*token == "all_mean")
 			{
-				params.push_back(new all_mean_parameter());
+				namedParamsMap.insert(paramName , new all_mean_parameter());
 			}
 		}
 	}
@@ -173,16 +198,22 @@ public:
 	/**
 	 * Parameterization call
 	 */
-	vector<double> operator()(ContactSetFrame & contactFrame)
+	map<string, vector<double> > operator()(ContactSetFrame & contactFrame)
 	{
-		vector<double> result;
-		BOOST_FOREACH(gesture_parameter &param, params)
+		map<string, vector<double> > resultMap;
+
+		for( namedParamMapT::iterator param = namedParamsMap.begin(), e = namedParamsMap.end(); param != e; ++param )
 		{
-			param(contactFrame, result);
+			resultMap.insert(namedParamValT(param->first, param->second->operator()(contactFrame)));
 		}
-		return result;
+		return resultMap;
 	}
 
-	//TODO Serialize this class
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & namedParamsMap;
+    }
 };
 #endif /* GESTUREPARAMETERIZATION_H_ */

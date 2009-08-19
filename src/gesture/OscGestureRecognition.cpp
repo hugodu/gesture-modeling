@@ -87,8 +87,9 @@ public:
 		return result;
 	}
 
-	virtual vector<double> parameterize()
+	virtual map<string, vector<double> > parameterize()
 	{
+		//Pick the latest frame of currGestureSegment, and return the parameterized map.
 		return recognizer.parameterize(currGestureSegment.sample[currGestureSegment.size() - 1]);
 	}
 };

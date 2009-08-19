@@ -25,6 +25,9 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
+#include <boost/ptr_container/serialize_ptr_vector.hpp>
+#include <boost/ptr_container/serialize_ptr_map.hpp>
 
 using namespace std;
 //For debug and test
@@ -96,10 +99,12 @@ vector<vector<vector<double> > > transformSamples(vector<GestureSample> samples)
 class RecognitionHelper
 {
 public:
-	VectorGestureClassification 			classifier;
-	map<int, string> 						gestureNameMap;
-	map<string, gesture_parameterization > 	gestureNameToParametersMap;
-	string									lastGesture;
+	typedef boost::ptr_map<string, gesture_parameterization> mapGP;
+
+	VectorGestureClassification 	classifier;
+	map<int, string> 				gestureNameMap;
+	mapGP						 	gestureNameToParametersMap;
+	string							lastGesture;
 
 	RecognitionHelper()
 	{}
@@ -200,8 +205,7 @@ public:
     {
         ar & classifier;
         ar & gestureNameMap;
-        //TODO Uncomment following line after fixing gesture_parameterization serialization
-        //ar & gestureNameToParametersMap;
+        ar & gestureNameToParametersMap;
     }
 
     void saveGestureSet(const char* appName)
@@ -223,18 +227,17 @@ public:
     	classifier.clear();
     }
 
-    vector<double> parameterize(ContactSetFrame & frame)
+    map<string, vector<double> > parameterize(ContactSetFrame & frame)
     {
-    	typedef map<string, gesture_parameterization> mapGP;
     	mapGP::iterator iter;
 
     	//Get the last gesture classified, verify that it contains parameters
     	iter = gestureNameToParametersMap.find(lastGesture);
     	if(iter != gestureNameToParametersMap.end())
     	{
-   			return (iter->second)(frame);
+   			return iter->second->operator()(frame);
     	}
-    	return vector<double>();
+    	return map<string, vector<double> >();
     }
 };
 

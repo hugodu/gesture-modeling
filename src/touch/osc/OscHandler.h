@@ -180,7 +180,7 @@ public:
 				listener->updateFrame(liveFrame);
 				if(isParameterizing)
 				{
-					vector<double> params = listener->parameterize();
+					map<string, vector<double> > params = listener->parameterize();
 					sendGestrParams(params);
 				}
 
@@ -217,7 +217,7 @@ public:
 	}
 
 private:
-
+	typedef map<string, vector<double> > paramValMapT;
 	void initOutStream()
 	{
 		outStream = new osc::OutboundPacketStream(buffer, OUTPUT_BUFFER_SIZE);
@@ -329,17 +329,23 @@ private:
 		cout << endl;
 		sendStream();
 	}
-	void sendGestrParams(vector<double> params)
+	void sendGestrParams(paramValMapT namedParams)
 	{
 		if (!outStream->IsBundleInProgress())
 			*outStream << osc::BeginBundleImmediate;
-		*outStream << osc::BeginMessage("/gestr/action");
-		*outStream << "param_update";
-		BOOST_FOREACH(double param, params)
+
+		BOOST_FOREACH(paramValMapT::value_type &namedParamValPair, namedParams)
 		{
-			*outStream << param;
+			*outStream << osc::BeginMessage("/gestr/action");
+			*outStream << "param_update";
+			const string &name =  namedParamValPair.first;
+			*outStream << name.c_str();
+			BOOST_FOREACH(double paramVal, namedParamValPair.second)
+			{
+				*outStream << paramVal;
+			}
+			*outStream << osc::EndMessage;
 		}
-		*outStream << osc::EndMessage;
 		sendStream();
 	}
 
