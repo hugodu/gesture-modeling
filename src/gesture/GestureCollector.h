@@ -66,7 +66,7 @@ public:
 	{
 		//clear sample and start appending frames
 		gestureName = gestName;
-		cout << "Start Sample, Had frames: " << currGestureSegment.size() << endl;
+		//cout << "Start Sample, Had frames: " << currGestureSegment.size() << endl;
 //		for(size_t i = 0; i < currSample.size(); i++)
 //			cout << "\t" << i << ": " << currSample.sample[i].size() << endl;
 		currGestureSegment.clear();
@@ -105,5 +105,7 @@ public:
 	{
 		return paramValMapT();
 	}
+	virtual bool isCurrentlyParameterized(){ return false; }
+	virtual void unParameterize(){}
 };
 #endif /* GESTURELEARNER_H_ */

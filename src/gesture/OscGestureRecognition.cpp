@@ -98,6 +98,16 @@ public:
 		//Pick the latest frame of currGestureSegment, and return the parameterized map.
 		return recognizer.parameterize(currGestureSegment.sample[currGestureSegment.size() - 1]);
 	}
+
+	virtual bool isCurrentlyParameterized()
+	{
+		return recognizer.isCurrentlyParameterized();
+	}
+
+	virtual void unParameterize()
+	{
+		recognizer.unParameterize();
+	}
 };
 
 int main(int argc, char **argv)

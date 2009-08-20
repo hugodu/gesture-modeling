@@ -36,7 +36,7 @@ public:
 	bool gestrSampleStart;
 	char buffer[OUTPUT_BUFFER_SIZE];
 	vector<int> liveIds;
-	bool isParameterizing;
+
 
 
 	OscHandler()
@@ -44,7 +44,6 @@ public:
 		cout << "Initing osc streams" << endl;
 		initOutStream();
 		gestrSampleStart = false;
-		isParameterizing = false;
 	}
 
 	~OscHandler()
@@ -105,7 +104,7 @@ public:
 		}
 		else if (strcmp(param, "alive") == 0)
 		{
-			vector<int> currIds = getCurrIdsAndClone(arg, m);
+			vector<int> currIds = getCurrIdsAndSendToOutStream(arg, m);
 
 			//Check for change in fingers on screen.
 			bool fingersRaised = isFingerRaised(currIds);
@@ -119,10 +118,11 @@ public:
 			if(fingersRaised)
 			{
 //				cout << "FingersRaised" << endl;
-				isParameterizing = false;
+				if(listener->isCurrentlyParameterized())
+					listener->unParameterize();
 			}
 			liveIds = currIds;
-
+			//We don't create a local cache of the sampleSize, becuase it varies with calls to check if it is static .
 			if(currIds.size() == 0 && listener->sampleSize() < 10)
 			{
 				listener->clearSample();
@@ -131,19 +131,17 @@ public:
 
 
 			bool currSegmentIsNowStatic = false;
-			if(listener->sampleSize() > 10) //Don't check if only 10 frames are collected
+			if(listener->sampleSize() > 10) 			//Don't check if only 10 frames are collected
 			{
-				if (listener->sampleIsNowStatic()) //Check to see if sample has stopped moving
+				if (listener->sampleIsNowStatic()) 		//Check to see if sample has stopped moving
 				{
-					if(listener->sampleIsOnlyStatic()) //Entire sample hasn't moved.
-						listener->startSample(""); //Restart collection of segment
-					else //Delimiter found. Sample is valid if non-static portion of gesture is > 10 frames
+					if(listener->sampleIsOnlyStatic()) 	//Entire sample hasn't moved.
+						listener->startSample(""); 		//Restart collection of segment
+					else 	//Delimiter found. Sample is valid if non-static portion of gesture is > 10 frames
 					{
 						currSegmentIsNowStatic = listener->sampleSize() > 10;
 					}
 				}
-//				else
-//					cout << "Frame is not Static, collected: " << listener->sampleSize() << endl;
 				//Two delimiters. currSegmentIsNowStatic or fingersRaised
 				if (currSegmentIsNowStatic || (fingersRaised && listener->sampleSize() > 10))
 				{
@@ -154,14 +152,9 @@ public:
 					outStream->Clear();
 					const char* gestrAction = "classify";
 					vector<string> actionResult = listener->gestureAction(gestrAction, vector<string>());
-					if (actionResult.size() > 2)
+					if (actionResult.size() > 2) //If the recognition is not "None"
 					{
 						sendGestrActionResults(gestrAction, actionResult);
-
-						if(actionResult[1] == "rotateRight") // Test case
-						{
-							isParameterizing = true;
-						}
 					}
 					listener->startSample(""); //Allow a new segment to begin.
 				}
@@ -177,12 +170,8 @@ public:
 			if (!gestrSampleStart && liveFrame.size() > 0)
 			{
 				listener->updateFrame(liveFrame);
-				if(isParameterizing)
-				{
-					map<string, vector<double> > params = listener->parameterize();
-					sendGestrParams(params);
-				}
-
+				if(listener->isCurrentlyParameterized())
+					sendGestrParams(listener->parameterize());
 				liveFrame.clear();
 			}
 			sendStream();
@@ -288,7 +277,7 @@ private:
 			throw osc::ExcessArgumentException();
 		return contact;
 	}
-	vector<int> getCurrIdsAndClone(osc::ReceivedMessageArgumentIterator arg,
+	vector<int> getCurrIdsAndSendToOutStream(osc::ReceivedMessageArgumentIterator arg,
 			const osc::ReceivedMessage & m)
 	{
 		if (!outStream->IsBundleInProgress()

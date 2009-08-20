@@ -101,11 +101,6 @@ class RecognitionHelper
 public:
 	typedef boost::ptr_map<string, gesture_parameterization> mapGP;
 
-	VectorGestureClassification 	classifier;
-	map<int, string> 				gestureNameMap;
-	mapGP						 	gestureNameToParametersMap;
-	string							lastGesture;
-
 	RecognitionHelper()
 	{}
 	vector<string> trainWithSamples(const vector<GestureSample> trainingSet, string gestureName)
@@ -207,13 +202,17 @@ public:
 		{
 			//TODO: More structure may help future cases
 			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
-			lastGesture = gestureNameMap[classIndex];
+			string lastGesture = gestureNameMap[classIndex];
+
+	    	mapGP::iterator iter = gestureNameToParametersMap.find(lastGesture);
+	    	if(iter != gestureNameToParametersMap.end())
+	    	{
+	    		currentParameterization = iter->second; //Set the object to parameterize from now.
+	    	}
 
 			result.push_back(lastGesture);
-
 			result.push_back(boost::lexical_cast<string>(-filter->tX));
 			result.push_back(boost::lexical_cast<string>(-filter->tY));
-
 		}
 		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
 			result.push_back("None");
@@ -221,19 +220,23 @@ public:
 
 	}
 
+	/**
+	 * The current frame is converted to a sequence of parameters
+	 */
     map<string, vector<double> > parameterize(ContactSetFrame & frame)
     {
-    	mapGP::iterator iter;
 
-    	//Get the last gesture classified, verify that it contains parameters
-    	iter = gestureNameToParametersMap.find(lastGesture);
-    	if(iter != gestureNameToParametersMap.end())
+    	if(currentParameterization)
     	{
-   			return iter->second->operator()(frame);
+   			return currentParameterization->operator()(frame);
     	}
     	return map<string, vector<double> >();
     }
 
+    void unParameterize()
+    {
+    	currentParameterization = 0;
+    }
 	const vector<long double> &probabilities() const
 	{
 	    return classifier.probabilities();
@@ -266,7 +269,15 @@ public:
     	classifier.clear();
     }
 
-
+    bool isCurrentlyParameterized()
+    {
+    	return (currentParameterization == 0);
+    }
+private:
+	VectorGestureClassification 	classifier;
+	map<int, string> 				gestureNameMap;
+	mapGP						 	gestureNameToParametersMap;
+	gesture_parameterization*		currentParameterization;
 };
 
 #endif /* GESTURES_H_ */

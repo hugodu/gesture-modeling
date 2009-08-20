@@ -54,14 +54,173 @@
 #include <ame/observations/training/dynamic_vector.hpp>
 #include <ame/observations/training/normal.hpp>
 
-#define PI 3.14159265
+
 
 using namespace std;
+
+class reordering_filter
+{
+public:
+	static const double  PI = 3.14159265;
+	string feature[3]; //Number of features.
+	vector<int> reassignments;
+	int selectedFeat;
+
+	reordering_filter()
+	{
+		feature[0]		= "Hor";
+		feature[1]		= "Ver";
+		feature[2]		= "Ang";
+		selectedFeat 	= -1;
+
+	}
+
+	/**
+	 * Frame consists of a sequence of x,y values of the contacts in the frame.
+	 */
+	vector<double> reorderFrame(const vector<double> & frame)
+	const
+	{
+		vector<double> orderedFrame = frame;
+		//Reorder the frame using reassignments.
+		if(frame.size() ==  reassignments.size() * 2) // Since we use 2 features.
+		{
+			for(size_t i = 0; i*2 + 1< reassignments.size(); i++)
+			{
+				orderedFrame[reassignments[i] * 2] = frame[i * 2];
+				orderedFrame[reassignments[i] * 2 + 1] = frame[i * 2 + 1];
+			}
+		}
+//		else cout <<"Not reordering" <<endl;
+		return orderedFrame;
+	}
+
+	double getScatterRatio(vector<vector<double> > featureValues)
+	{
+		unsigned int numFingers = featureValues[0].size();
+		unsigned int numSamples = featureValues.size();
+		vector<double> means;
+
+		for(size_t sampleNum = 0; sampleNum < numSamples; sampleNum++ )
+			for(size_t fingNum = 0; fingNum < numFingers; fingNum++)
+			{
+				if(sampleNum == 0)
+					means.push_back(0);
+				means[fingNum] += featureValues[sampleNum][fingNum];
+			}
+		double meanOfMeans = 0;
+		for(size_t fingNum = 0; fingNum < numFingers; fingNum++)
+		{
+			means[fingNum] /= numSamples;
+			meanOfMeans += means[fingNum];
+		}
+		meanOfMeans /= numFingers;
+
+		double sWithin 	= 0;
+		double sBetween = 0;
+		for(size_t fingNum = 0; fingNum < numFingers; fingNum++)
+		{
+			for(size_t sampleNum = 0; sampleNum < numSamples; sampleNum++ )
+			{
+				double d = featureValues[sampleNum][fingNum] - means[fingNum];
+				sWithin += d*d;
+			}
+			double meanDiff = means[fingNum] - meanOfMeans;
+			sBetween +=  meanDiff * meanDiff * numSamples;
+		}
+
+		double scatterRatio = (sWithin > 1e-5) ? sBetween / sWithin : 0;
+		cout << /*"Between: " << sBetween << "\tWithin: " << sWithin << */"\tScatter : " << scatterRatio << endl;
+		return scatterRatio;
+	}
+
+	/**
+	 * Select which ordering heuristic to use for this new gesture.
+	 * Feature is selected by maximum ratio of Scatter-between fingers to scatter-within finger across samples.
+	 */
+	void selectFeature(const vector<vector<vector<double> > > &allSamples)
+	{
+		vector<double> scatterRatios;
+		//Assuming Samples have been translated and scaled
+		for(size_t featureNum = 0; featureNum < 3; featureNum++)
+		{
+			vector<vector<double> > featureVals;
+			//Transform and extract feature values for all 3 heuristics.
+			for(size_t sampleNum = 0; sampleNum < allSamples.size(); sampleNum++)
+			{
+				vector<double> frame = allSamples[sampleNum][0]; //Frame 1 of each sample
+				vector<double> fVals = getFeatures(frame, featureNum);
+				sort(fVals.begin(), fVals.end());
+				featureVals.push_back(fVals);
+			}
+			scatterRatios.push_back(getScatterRatio(featureVals));
+		}
+		//		cout << "Scatter Ratios: ";
+		//		for(size_t i =0; i < scatterRatios.size(); i++)
+		//			cout << scatterRatios[i] << ", ";
+		//		cout << endl;
+		//Pick max scatterRatio
+		if(scatterRatios[0] > scatterRatios[1] && scatterRatios[0] > scatterRatios[2])
+			selectedFeat = 0;
+		else if(scatterRatios[1] > scatterRatios[0] && scatterRatios[1] > scatterRatios[2])
+			selectedFeat = 1;
+		else
+			selectedFeat = 2;
+		cout << "---\tOrdering samples by: " << feature[selectedFeat] <<endl;
+
+	}
+
+	vector<double> getFeatures(const vector<double> &frame, int featureNum)
+	{
+		vector<double> fVals;
+		for(size_t fingNum = 0; fingNum < frame.size(); fingNum += 2)
+		{
+			double value;
+			switch(featureNum)
+			{
+			//feature = Hor
+			case 0:	value = frame[fingNum]; break;//x
+			case 1: value = frame[fingNum + 1]; break;//y
+			case 2: value = atan2(frame[fingNum], frame[fingNum + 1]) * 180 / PI + 180; break; //angle of the contact from origin (mean)
+			}
+			fVals.push_back(value);
+		}
+		return fVals;
+	}
+
+	void setReassignments(vector<double> & frame1)
+	{
+		if(selectedFeat >= 0)
+		{
+			reassignments.clear();
+			//cout << "Reassignments: ";
+			vector<double> featureVals = getFeatures(frame1, selectedFeat);
+			vector<double> sortedVals = featureVals;
+			sort(sortedVals.begin(), sortedVals.end());
+			for(size_t i = 0; i < featureVals.size(); i++)
+				for(size_t j = 0; j < sortedVals.size(); j++)
+					if(featureVals[i] == sortedVals[j]) //index i has to be shifted to index j
+					{
+						reassignments.push_back(j);
+						//cout << " " << j;
+					}
+			//cout << endl;
+		}
+	}
+
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive & ar, const unsigned int version)
+	{
+		ar & feature;
+		ar & selectedFeat;
+	}
+};
 
 class multitouch_filter
 {
 public:
-	string feature[3]; //Number of features.
+
 
 	//Additional parameter required by the angular heuristic
 	double angle;
@@ -69,8 +228,7 @@ public:
 	double xBounds, yBounds;
 	double sX, sY; //Scale Params
 	double tX, tY; // Translate Params
-	vector<int> reassignments;
-	int selectedFeat;
+	reordering_filter reorder_filter;
 	int numFingers;
 
 	multitouch_filter(){}
@@ -80,14 +238,9 @@ public:
 	 */
 	multitouch_filter(const vector<vector<vector<double> > >  &allSamples)
 	{
-		feature[0]		= "Hor";
-		feature[1]		= "Ver";
-		feature[2]		= "Ang";
-		selectedFeat 	= -1;
 		//Use the first frame of the first (representative) sample to set scale parameters for the filter.
 		initParams(allSamples);
-
-		selectFeature(allSamples);
+		reorder_filter.selectFeature(allSamples);
 	}
 
 	/**
@@ -103,17 +256,8 @@ public:
 			frame[i] 		*= sX;
 			frame[i + 1] 	*= sY;
 		}
-		vector<double> orderedFrame = frame;
-		//Reorder the frame using reassignments.
-		if(reassignments.size() == frame.size() * 2)
-		{
-			for(size_t i = 0; i + 1< frame.size(); i+=2)
-			{
-				orderedFrame[reassignments[i]] = frame[i];
-				orderedFrame[reassignments[i] + 1] = frame[i + 1];
-			}
-		}
-		return orderedFrame;
+		vector<double> reorderedFrame = reorder_filter.reorderFrame(frame);
+		return reorderedFrame;
 	}
 
 	/**
@@ -153,19 +297,8 @@ public:
 		sY = yBounds / (maxY - minY);
 		//cout << "Params: sX:" << sX << " sY:" << sY << " tX:" << tX << " tY:" << tY << endl;
 
+		reorder_filter.setReassignments(frame1);
 
-		//Shouldn't be required.
-		if(selectedFeat >= 0)
-		{
-			vector<double> fVals = getFeatures(frame1, selectedFeat);
-			vector<double> sortedVals = fVals;
-			sort(sortedVals.begin(), sortedVals.end());
-			for(size_t i = 0; i < fVals.size(); i++)
-				for(size_t j = 0; j < sortedVals.size(); j++)
-					if(fVals[i] == sortedVals[j])
-						reassignments.push_back(j);
-
-		}
 	}
 
 	bool accepts(const vector<vector<double> > &sample)
@@ -179,65 +312,10 @@ public:
 		}
 	}
 
-	/**
-	 * Select which ordering heuristic to use for this new gesture.
-	 * Feature is selected by maximum ratio of Scatter-between fingers to scatter-within finger across samples.
-	 */
-	void selectFeature(const vector<vector<vector<double> > > &allSamples)
-	{
-		vector<double> scatterRatios;
-		//Assuming Samples have been translated and scaled
-		for(size_t featureNum = 0; featureNum < 3; featureNum++)
-		{
-			vector<vector<double> > featureVals;
-			//Transform and extract feature values for all 3 heuristics.
-			for(size_t sampleNum = 0; sampleNum < allSamples.size(); sampleNum++)
-			{
-				vector<double> frame = allSamples[sampleNum][0]; //Frame 1 of each sample
-				vector<double> fVals = getFeatures(frame, featureNum);
-				sort(fVals.begin(), fVals.end());
-				featureVals.push_back(fVals);
-			}
-			scatterRatios.push_back(getScatterRatio(featureVals));
-		}
-//		cout << "Scatter Ratios: ";
-//		for(size_t i =0; i < scatterRatios.size(); i++)
-//			cout << scatterRatios[i] << ", ";
-//		cout << endl;
-		//Pick max scatterRatio
-		if(scatterRatios[0] > scatterRatios[1] && scatterRatios[0] > scatterRatios[2])
-			selectedFeat = 0;
-		else if(scatterRatios[1] > scatterRatios[0] && scatterRatios[1] > scatterRatios[2])
-			selectedFeat = 1;
-		else
-			selectedFeat = 2;
-		cout << "---\tOrdering samples by: " << feature[selectedFeat] <<endl;
-
-	}
-
-	vector<double> getFeatures(const vector<double> &frame, int featureNum)
-	{
-		vector<double> fVals;
-		for(size_t fingNum = 0; fingNum < frame.size(); fingNum += 2)
-		{
-			double value;
-			switch(featureNum)
-			{
-			//feature = Hor
-			case 0:	value = frame[fingNum]; break;//x
-			case 1: value = frame[fingNum + 1]; break;//y
-			case 2: value = atan2(frame[fingNum], frame[fingNum + 1]) * 180 / PI + 180; break; //angle of the contact from origin (mean)
-			}
-			fVals.push_back(value);
-		}
-		return fVals;
-	}
-
 	friend class boost::serialization::access;
 	template<class Archive>
 	void serialize(Archive & ar, const unsigned int version)
 	{
-		ar & feature;
 		ar & angle;
 		ar & xBounds;
 		ar & yBounds;
@@ -245,8 +323,8 @@ public:
 		ar & sY;
 		ar & tX;
 		ar & tY;
-		ar & selectedFeat;
 		ar & numFingers;
+		ar & reorder_filter;
 	}
 private:
 	void initParams(const vector<vector<vector<double> > > allSamples)
@@ -293,45 +371,6 @@ private:
 		}
 		bbox[0] = maxX - minX;
 		bbox[1] = maxY - minY;
-	}
-
-	double getScatterRatio(vector<vector<double> > featureValues)
-	{
-		unsigned int numFingers = featureValues[0].size();
-		unsigned int numSamples = featureValues.size();
-		vector<double> means;
-
-		for(size_t sampleNum = 0; sampleNum < numSamples; sampleNum++ )
-			for(size_t fingNum = 0; fingNum < numFingers; fingNum++)
-			{
-				if(sampleNum == 0)
-					means.push_back(0);
-				means[fingNum] += featureValues[sampleNum][fingNum];
-			}
-		double meanOfMeans = 0;
-		for(size_t fingNum = 0; fingNum < numFingers; fingNum++)
-		{
-			means[fingNum] /= numSamples;
-			meanOfMeans += means[fingNum];
-		}
-		meanOfMeans /= numFingers;
-
-		double sWithin 	= 0;
-		double sBetween = 0;
-		for(size_t fingNum = 0; fingNum < numFingers; fingNum++)
-		{
-			for(size_t sampleNum = 0; sampleNum < numSamples; sampleNum++ )
-			{
-				double d = featureValues[sampleNum][fingNum] - means[fingNum];
-				sWithin += d*d;
-			}
-			double meanDiff = means[fingNum] - meanOfMeans;
-			sBetween +=  meanDiff * meanDiff * numSamples;
-		}
-
-		double scatterRatio = (sWithin > 1e-5) ? sBetween / sWithin : 0;
-		cout << /*"Between: " << sBetween << "\tWithin: " << sWithin << */"\tScatter : " << scatterRatio << endl;
-		return scatterRatio;
 	}
 };
 
