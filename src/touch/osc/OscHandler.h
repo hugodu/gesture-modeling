@@ -119,45 +119,23 @@ public:
 			{
 //				cout << "FingersRaised" << endl;
 				if(listener->isCurrentlyParameterized())
+				{
 					listener->unParameterize();
+					listener->startSample("");
+				}
 			}
 			liveIds = currIds;
-			//We don't create a local cache of the sampleSize, becuase it varies with calls to check if it is static .
+
+			//We don't create a local cache of the sampleSize, becuase it changes with calls
 			if(currIds.size() == 0 && listener->sampleSize() < 10)
 			{
 				listener->clearSample();
 				return; //Had nothing, have nothing worth checking, nothing to do.
 			}
 
-
-			bool currSegmentIsNowStatic = false;
-			if(listener->sampleSize() > 10) 			//Don't check if only 10 frames are collected
+			if(!listener->isCurrentlyParameterized()) //If the gesture is currently being parameterized, classification temporarily ceases.
 			{
-				if (listener->sampleIsNowStatic()) 		//Check to see if sample has stopped moving
-				{
-					if(listener->sampleIsOnlyStatic()) 	//Entire sample hasn't moved.
-						listener->startSample(""); 		//Restart collection of segment
-					else 	//Delimiter found. Sample is valid if non-static portion of gesture is > 10 frames
-					{
-						currSegmentIsNowStatic = listener->sampleSize() > 10;
-					}
-				}
-				//Two delimiters. currSegmentIsNowStatic or fingersRaised
-				if (currSegmentIsNowStatic || (fingersRaised && listener->sampleSize() > 10))
-				{
-					cout << "Valid Segment with size: " << listener->sampleSize() << endl;
-
-					//Segment should be classified
-					listener->endSample();
-					outStream->Clear();
-					const char* gestrAction = "classify";
-					vector<string> actionResult = listener->gestureAction(gestrAction, vector<string>());
-					if (actionResult.size() > 2) //If the recognition is not "None"
-					{
-						sendGestrActionResults(gestrAction, actionResult);
-					}
-					listener->startSample(""); //Allow a new segment to begin.
-				}
+				segmentAndClassify(fingersRaised);
 			}
 		}
 		else if (strcmp(param, "fseq") == 0)
@@ -179,6 +157,39 @@ public:
 
 	}
 
+	void segmentAndClassify(bool fingersRaised)
+	{
+		bool currSegmentIsNowStatic = false;
+
+		if(listener->sampleSize() > 10) 			//Don't check if only 10 frames are collected
+		{
+			if (listener->sampleIsNowStatic()) 		//Check to see if sample has stopped moving
+			{
+				if(listener->sampleIsOnlyStatic()) 	//Entire sample hasn't moved.
+					listener->startSample(""); 		//Restart collection of segment
+				else 	//Delimiter found. Sample is valid if non-static portion of gesture is > 10 frames
+				{
+					currSegmentIsNowStatic = listener->sampleSize() > 10;
+				}
+			}
+			//Two delimiters. currSegmentIsNowStatic or fingersRaised
+			if (currSegmentIsNowStatic || (fingersRaised && listener->sampleSize() > 10))
+			{
+				cout << "Valid Segment with size: " << listener->sampleSize() << endl;
+
+				//Segment should be classified
+				listener->endSample();
+				outStream->Clear();
+				const char* gestrAction = "classify";
+				vector<string> actionResult = listener->gestureAction(gestrAction, vector<string>());
+				if (actionResult.size() > 2) //If the recognition is not "None"
+				{
+					sendGestrActionResults(gestrAction, actionResult);
+				}
+				listener->startSample(""); //Allow a new segment to begin.
+			}
+		}
+	}
 	void ProcessMessage(const osc::ReceivedMessage & m,
 			const IpEndpointName & remoteEndpoint)
 	{
