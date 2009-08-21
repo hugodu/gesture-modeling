@@ -35,13 +35,16 @@ public:
 	string gestureName;
 	std::vector<GestureSample> samples;
 
-	void updateFrame(ContactSetFrame c)
+	void updateFrame(ContactSetFrame frame)
 	{
 //		//If we are saving a segment, ensure subsequent frame has same number of fingers.
-//		if(currGestureSegment.size() > 0 && currGestureSegment.lastFrameSize() != c.size())
+//		if(currGestureSegment.size() > 1 && currGestureSegment.lastFrameSize() != frame.size())
 //			return; //Ignore frames with different number of fingers.
 		if(appendFrames)
-			currGestureSegment.push_back(c);
+		{
+			currGestureSegment.push_back(frame);
+			//cout << "frame added: " << currGestureSegment.size() << endl;
+		}
 	}
 
 	void endSample()
@@ -51,9 +54,11 @@ public:
 		if(currGestureSegment.size() > 0)
 		{
 			samples.push_back(currGestureSegment);
-			cout << "Collected: " << samples.size() << " samples. Last sample size:" << currGestureSegment.size() << endl;
+			cout << "Collected: " << samples.size() << " samples. Last sample size:" << currGestureSegment.size();
+			cout << " Number of fingers: " << currGestureSegment.numFingers() << endl;
+			//currGestureSegment.printSample();
+
 		}
-		//		currSample.printSample();
 	}
 
 	void clearSample()

@@ -112,12 +112,12 @@ public:
 
 			if(fingersLowered)
 			{
-//				cout << "FingersLowered" << endl;
+				//cout << "FingersLowered. Num fingers now: " << currIds.size()  << endl;
 				listener->startSample("");
 			}
 			if(fingersRaised)
 			{
-//				cout << "FingersRaised" << endl;
+				//cout << "FingersRaised. Num fingers now: " << currIds.size() << endl;
 				if(listener->isCurrentlyParameterized())
 				{
 					listener->unParameterize();
@@ -145,13 +145,15 @@ public:
 
 			*outStream << osc::BeginMessage("/tuio/2Dcur") << "fseq" << (arg++)->AsInt32() << osc::EndMessage;
 			*outStream << osc::EndBundle;
-			if (!gestrSampleStart && liveFrame.size() > 0)
+			//cout << "At Fseq: frameSize: " << liveFrame.size() << " liveIds: " << liveIds.size() << endl;
+			if (!gestrSampleStart && liveFrame.size() > 0 && liveFrame.size() == liveIds.size())
 			{
 				listener->updateFrame(liveFrame);
 				if(listener->isCurrentlyParameterized())
 					sendGestrParams(listener->parameterize());
-				liveFrame.clear();
 			}
+			liveFrame.clear();
+
 			sendStream();
 		}
 

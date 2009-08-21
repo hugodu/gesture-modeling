@@ -133,7 +133,7 @@ public:
 	{
 		vector<Contact>::iterator contact;
 		for( contact = frame.begin(); contact != frame.end(); contact++) {
-			cout << "x: " << contact->x << "\ty: " << contact->y << "\t";
+			cout << "(" << contact->id << ") x: " << contact->x << "\ty: " << contact->y << "\t";
 		}
 		cout << endl;
 
@@ -163,6 +163,10 @@ public:
 		}
 	}
 
+	int numFingers()
+	{
+		return sample[0].frame.size();
+	}
 	void printSample()
 	{
 		unsigned int i = sample.size();
