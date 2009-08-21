@@ -102,6 +102,7 @@ public:
 	typedef boost::ptr_map<string, gesture_parameterization> mapGP;
 
 	RecognitionHelper()
+	:currentParameterization(0)
 	{}
 	vector<string> trainWithSamples(const vector<GestureSample> trainingSet, string gestureName)
 	{
@@ -160,13 +161,13 @@ public:
 	{
     	mapGP::iterator iter;
 
-    	iter = gestureNameToParametersMap.find(parameterStrings[0]);
+    	iter = gestureNameToParameterizationMap.find(parameterStrings[0]);
     	namedPairT namedParamStringPair(parameterStrings[1], parameterStrings[2]);
-    	if(iter == gestureNameToParametersMap.end())
+    	if(iter == gestureNameToParameterizationMap.end())
     	{
     		//No parameters exist for this gesture. Create a gesture_parameterization object with this parameter
     		gesture_parameterization parameterization(namedParamStringPair);
-    		gestureNameToParametersMap[parameterStrings[0]] = parameterization;
+    		gestureNameToParameterizationMap[parameterStrings[0]] = parameterization;
     	}
     	else
     		iter->second->addParameter(namedParamStringPair);
@@ -204,11 +205,14 @@ public:
 			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
 			string lastGesture = gestureNameMap[classIndex];
 
-	    	mapGP::iterator iter = gestureNameToParametersMap.find(lastGesture);
-	    	if(iter != gestureNameToParametersMap.end())
+	    	mapGP::iterator iter = gestureNameToParameterizationMap.find(lastGesture);
+	    	if(iter != gestureNameToParameterizationMap.end())
 	    	{
 	    		currentParameterization = iter->second; //Set the object to parameterize from now.
+	    		cout << "Gesture is parameterized" << endl;
 	    	}
+	    	else
+	    		cout << "No parameters for this gesture" << endl;
 
 			result.push_back(lastGesture);
 			result.push_back(boost::lexical_cast<string>(-filter->tX));
@@ -247,7 +251,7 @@ public:
     {
         ar & classifier;
         ar & gestureNameMap;
-        ar & gestureNameToParametersMap;
+        ar & gestureNameToParameterizationMap;
     }
 
     void saveGestureSet(string appName)
@@ -271,12 +275,12 @@ public:
 
     bool isCurrentlyParameterized()
     {
-    	return (currentParameterization == 0);
+    	return (currentParameterization != 0);
     }
 private:
 	VectorGestureClassification 	classifier;
 	map<int, string> 				gestureNameMap;
-	mapGP						 	gestureNameToParametersMap;
+	mapGP						 	gestureNameToParameterizationMap;
 	gesture_parameterization*		currentParameterization;
 };
 

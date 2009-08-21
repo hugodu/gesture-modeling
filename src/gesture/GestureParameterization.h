@@ -17,6 +17,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/serialize_ptr_vector.hpp>
 
+//FIXME Check input strings before proceeding. Provide helpful error messages.
 class gesture_parameter
 {
 public:
@@ -178,11 +179,14 @@ public:
 	{
 		string paramName = namedPair.first;
 		string paramString = namedPair.second;
-		cout << "Instantiating gesture parameter: " << paramString << endl;
+
+		//Note: Boost tokenizer uses _ as a token seperator by default ! workaround this...
+		boost::char_separator<char> sep(" ");
+		boost::tokenizer<boost::char_separator<char> > 				tok(paramString, sep);
+		boost::tokenizer<boost::char_separator<char> >::iterator 	token=tok.begin();
 
 		//Instantiate the appropriate parameter class and add to the params vector.
-		boost::tokenizer<> tok(paramString);
-		boost::tokenizer<>::iterator token=tok.begin();
+		cout << "Instantiating gesture parameter: " << paramString << endl;
 		if(*token == "fing_dist")
 		{
 			int fing_index1 = boost::lexical_cast<int>(*++token);
