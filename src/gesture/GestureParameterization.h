@@ -186,7 +186,6 @@ public:
 		boost::tokenizer<boost::char_separator<char> >::iterator 	token=tok.begin();
 
 		//Instantiate the appropriate parameter class and add to the params vector.
-		cout << "Instantiating gesture parameter: " << paramString << endl;
 		if(*token == "fing_dist")
 		{
 			int fing_index1 = boost::lexical_cast<int>(*++token);
@@ -207,6 +206,8 @@ public:
 		{
 			namedParamsMap.insert(paramName , new all_mean_parameter());
 		}
+		cout << "Instantiated gesture parameter: " << paramString << ". Gesture now has " << namedParamsMap.size() <<  " params" << endl;
+
 	}
 	/**
 	 * Parameterization call

@@ -102,7 +102,7 @@ public:
 	typedef boost::ptr_map<string, gesture_parameterization> mapGP;
 
 	RecognitionHelper()
-	:currentParameterization(0)
+	:currentParameterization(0),reorderFilter(0),paused(false),resetOrdering(false)
 	{}
 	vector<string> trainWithSamples(const vector<GestureSample> trainingSet, string gestureName)
 	{
@@ -160,20 +160,20 @@ public:
 	vector<string> addParameterToGesture(vector<string> parameterStrings)
 	{
     	mapGP::iterator iter;
-
-    	iter = gestureNameToParameterizationMap.find(parameterStrings[0]);
+    	string gestureName = parameterStrings[0];
+    	iter = gestureNameToParameterizationMap.find(gestureName);
     	namedPairT namedParamStringPair(parameterStrings[1], parameterStrings[2]);
     	if(iter == gestureNameToParameterizationMap.end())
     	{
     		//No parameters exist for this gesture. Create a gesture_parameterization object with this parameter
-    		gesture_parameterization parameterization(namedParamStringPair);
-    		gestureNameToParameterizationMap[parameterStrings[0]] = parameterization;
+//    		gesture_parameterization parameterization(namedParamStringPair);
+    		gestureNameToParameterizationMap.insert(gestureName, new gesture_parameterization(namedParamStringPair));
     	}
     	else
     		iter->second->addParameter(namedParamStringPair);
 
     	vector<string> result;
-    	result.push_back("Parameter" + parameterStrings[1] +
+    	result.push_back("Parameter " + parameterStrings[1] +
     			" successfully added to gesture: " + parameterStrings[0] +
     			" with parameter string: " + parameterStrings[2]);
     	return result;
@@ -201,7 +201,6 @@ public:
 
 		if(!allZero && classIndex >= 0 && ((unsigned int)classIndex) < gestureNameMap.size())
 		{
-			//TODO: More structure may help future cases
 			multitouch_filter* filter = static_cast<multitouch_filter *>(classifier.getFilter(classIndex));
 			string lastGesture = gestureNameMap[classIndex];
 
@@ -209,7 +208,8 @@ public:
 	    	if(iter != gestureNameToParameterizationMap.end())
 	    	{
 	    		currentParameterization = iter->second; //Set the object to parameterize from now.
-	    		cout << "Gesture is parameterized" << endl;
+	    		reorderFilter			= &(filter->reorder_filter);
+	    		cout << "Gesture is parameterized with: " << currentParameterization->namedParamsMap.size() << " parameters." << endl;
 	    	}
 	    	else
 	    		cout << "No parameters for this gesture" << endl;
@@ -220,6 +220,7 @@ public:
 		}
 		else //classIndex == -1 || allZero probabilities when sample doesn't match any filter-model pair
 			result.push_back("None");
+		cout << "Parameterization begin. Ordering by: " << reorderFilter->feature[reorderFilter->selectedFeat] << endl;
 		return result;
 
 	}
@@ -230,9 +231,16 @@ public:
     map<string, vector<double> > parameterize(ContactSetFrame & frame)
     {
 
-    	if(currentParameterization)
+    	if(currentParameterization && !paused)
     	{
-   			return currentParameterization->operator()(frame);
+    		if(resetOrdering)
+    		{
+    			vector<double> transformedFrame = frame.transform();
+    			reorderFilter->setReassignments(transformedFrame);
+    			resetOrdering = false;
+    		}
+    		ContactSetFrame orderedFrame = reorderFilter->reorderFrame(frame);
+   			return currentParameterization->operator()(orderedFrame);
     	}
     	return map<string, vector<double> >();
     }
@@ -240,6 +248,20 @@ public:
     void unParameterize()
     {
     	currentParameterization = 0;
+    	reorderFilter 			= 0;
+    }
+    bool isParameterizationPaused()
+    {
+    	return isCurrentlyParameterized() && paused;
+    }
+    void pauseParameterization()
+    {
+    	paused = true;
+    }
+    void unpauseParameterization()
+    {
+    	paused = false;
+    	resetOrdering = true;
     }
 	const vector<long double> &probabilities() const
 	{
@@ -281,7 +303,12 @@ private:
 	VectorGestureClassification 	classifier;
 	map<int, string> 				gestureNameMap;
 	mapGP						 	gestureNameToParameterizationMap;
+
+	//Temporary vars for parameterization state handling
 	gesture_parameterization*		currentParameterization;
+	reordering_filter*				reorderFilter;
+	bool							paused;
+	bool							resetOrdering;
 };
 
 #endif /* GESTURES_H_ */

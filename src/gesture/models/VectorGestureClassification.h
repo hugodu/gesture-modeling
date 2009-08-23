@@ -83,7 +83,7 @@ public:
 	{
 		vector<double> orderedFrame = frame;
 		//Reorder the frame using reassignments.
-		if(frame.size() ==  reassignments.size() * 2) // Since we use 2 features.
+		if(frame.size() == reassignments.size() * 2) // Since we use 2 features.
 		{
 			for(size_t i = 0; i*2 + 1< reassignments.size(); i++)
 			{
@@ -92,6 +92,20 @@ public:
 			}
 		}
 //		else cout <<"Not reordering" <<endl;
+		return orderedFrame;
+	}
+
+	/**
+	 * allows reordering of a contact set frame
+	 */
+	ContactSetFrame reorderFrame(ContactSetFrame & frame)
+	{
+		ContactSetFrame orderedFrame = frame;
+		if(frame.size() == reassignments.size())
+		{
+			for(size_t i = 0; i < reassignments.size(); i++)
+			orderedFrame.frame[reassignments[i]] = frame.frame[i];
+		}
 		return orderedFrame;
 	}
 

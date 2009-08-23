@@ -83,7 +83,6 @@ public:
 		}
 		else if(strcmp(actionString, "parameterize") == 0)
 		{
-			cout << "Attempting to parameterize gesture" << endl;
 			result = recognizer.addParameterToGesture(actionParams);
 		}
 		else
@@ -107,6 +106,18 @@ public:
 	virtual void unParameterize()
 	{
 		recognizer.unParameterize();
+	}
+	virtual bool isParameterizationPaused()
+	{
+		return recognizer.isParameterizationPaused();
+	}
+	virtual void unpauseParameterization()
+	{
+		recognizer.unpauseParameterization();
+	}
+	virtual void pauseParameterization()
+	{
+		recognizer.pauseParameterization();
 	}
 };
 

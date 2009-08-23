@@ -112,5 +112,8 @@ public:
 	}
 	virtual bool isCurrentlyParameterized(){ return false; }
 	virtual void unParameterize(){}
+	virtual bool isParameterizationPaused(){ return false;}
+	virtual void unpauseParameterization(){}
+	virtual void pauseParameterization(){}
 };
 #endif /* GESTURELEARNER_H_ */

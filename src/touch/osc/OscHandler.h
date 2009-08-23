@@ -114,14 +114,27 @@ public:
 			{
 				//cout << "FingersLowered. Num fingers now: " << currIds.size()  << endl;
 				listener->startSample("");
+				if(listener->isParameterizationPaused())
+				{
+					listener->unpauseParameterization();
+				}
+
 			}
 			if(fingersRaised)
 			{
 				//cout << "FingersRaised. Num fingers now: " << currIds.size() << endl;
 				if(listener->isCurrentlyParameterized())
 				{
-					listener->unParameterize();
-					listener->startSample("");
+					if(currIds.size() == 0) //All fingers raised. End gesture.
+					{
+						listener->unParameterize();
+						listener->startSample("");
+					}
+					else //Gesture is alive, but parameterization is paused
+					{
+						listener->pauseParameterization();
+					}
+
 				}
 			}
 			liveIds = currIds;
@@ -140,11 +153,6 @@ public:
 		}
 		else if (strcmp(param, "fseq") == 0)
 		{
-			if (!outStream->IsBundleInProgress())
-				*outStream << osc::BeginBundleImmediate;
-
-			*outStream << osc::BeginMessage("/tuio/2Dcur") << "fseq" << (arg++)->AsInt32() << osc::EndMessage;
-			*outStream << osc::EndBundle;
 			//cout << "At Fseq: frameSize: " << liveFrame.size() << " liveIds: " << liveIds.size() << endl;
 			if (!gestrSampleStart && liveFrame.size() > 0 && liveFrame.size() == liveIds.size())
 			{
@@ -153,10 +161,13 @@ public:
 					sendGestrParams(listener->parameterize());
 			}
 			liveFrame.clear();
+			if (!outStream->IsBundleInProgress())
+				*outStream << osc::BeginBundleImmediate;
 
+			*outStream << osc::BeginMessage("/tuio/2Dcur") << "fseq" << (arg++)->AsInt32() << osc::EndMessage;
+			*outStream << osc::EndBundle;
 			sendStream();
 		}
-
 	}
 
 	void segmentAndClassify(bool fingersRaised)
@@ -332,6 +343,10 @@ private:
 	}
 	void sendGestrParams(paramValMapT namedParams)
 	{
+		if(namedParams.size() == 0)
+			return;
+
+		outStream->Clear();
 		if (!outStream->IsBundleInProgress())
 			*outStream << osc::BeginBundleImmediate;
 
@@ -341,10 +356,13 @@ private:
 			*outStream << "param_update";
 			const string &name =  namedParamValPair.first;
 			*outStream << name.c_str();
+			cout << "param_update " << name << " ";
 			BOOST_FOREACH(double paramVal, namedParamValPair.second)
 			{
+				cout << paramVal << " ";
 				*outStream << paramVal;
 			}
+			cout << endl;
 			*outStream << osc::EndMessage;
 		}
 		sendStream();
