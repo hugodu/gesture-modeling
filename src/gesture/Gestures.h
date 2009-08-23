@@ -33,7 +33,7 @@ using namespace std;
 //For debug and test
 string base = "data/reOrdered/";
 
-void printTransform(vector<vector<double> > transformed)
+void printTransform(const vector<vector<double> > &transformed)
 {
 	cout << "Transformed Size: " << transformed.size() << endl;
 
@@ -45,7 +45,7 @@ void printTransform(vector<vector<double> > transformed)
 	}
 }
 
-vector<GestureSample> readFile(string fileName)
+vector<GestureSample> readFile(const string &fileName)
 {
 	vector<GestureSample> readSamples;
 	ifstream readFile;
@@ -75,21 +75,21 @@ vector<GestureSample> readFile(string fileName)
 	return readSamples;
 
 }
-vector<GestureSample> readGestureSet(string gid, string uid)
+vector<GestureSample> readGestureSet(const string &gid, const string &uid)
 {
 	string fileName = "gid_" + gid + "_uid_" + uid + ".seqs";
 	return readFile(base + fileName);
 }
 
 
-vector<vector<vector<double> > > transformSamples(vector<GestureSample> samples)
+vector<vector<vector<double> > > transformSamples(const vector<GestureSample> &samples)
 {
 	vector<vector<vector<double> > > transformedSet;
 	//cout << "Transforming " << samples.size() << " samples" << endl;
 
-	if (samples.size() > 0)
+	if (!samples.empty())
 		for (size_t i = 0; i < samples.size(); ++i)
-			transformedSet.push_back(samples.at(i).transform());
+			transformedSet.push_back(samples[i].transform());
 	else
 		cout << "No Samples" << endl;
 
@@ -104,7 +104,7 @@ public:
 	RecognitionHelper()
 	:currentParameterization(0),reorderFilter(0),paused(false),resetOrdering(false)
 	{}
-	vector<string> trainWithSamples(const vector<GestureSample> trainingSet, string gestureName)
+	vector<string> trainWithSamples(const vector<GestureSample> &trainingSet, const string &gestureName)
 	{
 		vector<string> result;
 		VectorGestureClassification tempClassifier;
@@ -157,7 +157,7 @@ public:
 	 * gesture_name parameter_name parameter_string
 	 */
 	typedef pair<string, string> namedPairT;
-	vector<string> addParameterToGesture(vector<string> parameterStrings)
+	vector<string> addParameterToGesture(const vector<string> &parameterStrings)
 	{
     	mapGP::iterator iter;
     	string gestureName = parameterStrings[0];
@@ -182,7 +182,7 @@ public:
 	/**
 	 *
 	 */
-	vector<string> classify(GestureSample* sample)
+	vector<string> classify(const GestureSample * sample)
 	{
 		vector<string> result;
 		vector<vector<double> > transformed = sample->transform();
@@ -250,10 +250,16 @@ public:
     	currentParameterization = 0;
     	reorderFilter 			= 0;
     }
-    bool isParameterizationPaused()
+    bool isParameterizationPaused() const
     {
     	return isCurrentlyParameterized() && paused;
     }
+
+    bool isCurrentlyParameterized() const
+    {
+    	return (currentParameterization != 0);
+    }
+
     void pauseParameterization()
     {
     	paused = true;
@@ -295,10 +301,6 @@ public:
     	classifier.clear();
     }
 
-    bool isCurrentlyParameterized()
-    {
-    	return (currentParameterization != 0);
-    }
 private:
 	VectorGestureClassification 	classifier;
 	map<int, string> 				gestureNameMap;

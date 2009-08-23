@@ -12,6 +12,7 @@
 #include <iostream>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
 using namespace std;
 
 class Contact {
@@ -21,18 +22,18 @@ public:
 	float x, y, dx, dy, width, height, pressure;
 
 	Contact(){};
-	Contact(int _id, vector<string> vals)
+	Contact(int _id, const vector<string> &vals)
 	{
 		id = _id;
 
-		x  = atof(vals[id * num_dims].c_str());
-		y  = atof(vals[id * num_dims + 1].c_str());
-		dx = atof(vals[id * num_dims + 2].c_str());
-		dy = atof(vals[id * num_dims + 3].c_str());
+		x = boost::lexical_cast<float>(vals[id * num_dims]);
+		y  = boost::lexical_cast<float>(vals[id * num_dims + 1]);
+		dx = boost::lexical_cast<float>(vals[id * num_dims + 2]);
+		dy = boost::lexical_cast<float>(vals[id * num_dims + 3]);
 
-		width    = atof(vals[id * num_dims + 4].c_str());
-		height   = atof(vals[id * num_dims + 5].c_str());
-		pressure = atof(vals[id * num_dims + 6].c_str());
+		width    = boost::lexical_cast<float>(vals[id * num_dims + 4]);
+		height   = boost::lexical_cast<float>(vals[id * num_dims + 5]);
+		pressure = boost::lexical_cast<float>(vals[id * num_dims + 6]);
 
 	}
 
@@ -55,52 +56,40 @@ public:
 	ContactSetFrame(){};
 	ContactSetFrame(string &frameStr)
 	{
-		int pos = frameStr.find("[");
-		while(pos >=0)
-		{
-			frameStr.replace(pos, 1, "");
-			pos = frameStr.find("[", pos);
-		}
 		//each is a frame
 		//Num samples = number of tokens / NUM_DIMS;
 		vector<string> vals;
-		Contact contact;
-		boost::tokenizer<> tok(frameStr);
-		BOOST_FOREACH(string token, tok)
-		{
-			vals.push_back(token);
-		}
-//		for(boost::tokenizer<>::iterator token=tok.begin(); token != tok.end(); ++token)
-//			vals.push_back(*token);
+		boost::char_separator<char> sep("[ ");
+		boost::tokenizer<boost::char_separator<char> > tok(frameStr, sep);
+
+		std::copy(tok.begin(),tok.end(),std::back_inserter (vals));
 
 		for (size_t j = 0; j < vals.size(); j+=num_dims)
-		{
-			contact = Contact(j/num_dims, vals);
-			frame.push_back(contact);
-		}
+			frame.push_back(Contact(j/num_dims, vals));
+
 		//printFrame();
 	}
 	void clear()
 	{
 		frame.clear();
 	}
-	void push_back(Contact &c)
+	void push_back(const Contact &c)
 	{
 		frame.push_back(c);
 	}
 
-	Contact getContact(int contactIndex)
+	const Contact &getContact(int contactIndex) const
 	{
 		return frame[contactIndex];
 	}
 
-	vector<double> transform()
+	vector<double> transform() const
 	{
 		vector<double> transformed;
-		for(size_t i = 0; i < frame.size(); i++)
+		BOOST_FOREACH(Contact c, frame)
 		{
-			transformed.push_back(frame.at(i).x);
-			transformed.push_back(frame.at(i).y);
+			transformed.push_back(c.x);
+			transformed.push_back(c.y);
 		}
 		if(transformed.size() != frame.size() * 2)
 			cout << "Transformed Vector size isn't right: " << transformed.size() <<
@@ -109,7 +98,7 @@ public:
 		return transformed;
 	}
 
-	bool isWithinTolerance(ContactSetFrame& otherFrame, double tolerance)
+	bool isWithinTolerance(const ContactSetFrame& otherFrame, double tolerance) const
 	{
 		bool isStatic = true;
 		if(frame.size() != otherFrame.size())
@@ -125,16 +114,14 @@ public:
 		return isStatic;
 	}
 
-	size_t size()
+	size_t size() const
 	{
 		return frame.size();
 	}
-	void printFrame()
+	void printFrame() const
 	{
-		vector<Contact>::iterator contact;
-		for( contact = frame.begin(); contact != frame.end(); contact++) {
-			cout << "(" << contact->id << ") x: " << contact->x << "\ty: " << contact->y << "\t";
-		}
+		BOOST_FOREACH(Contact contact, frame)
+			cout << "(" << contact.id << ") x: " << contact.x << "\ty: " << contact.y << "\t";
 		cout << endl;
 
 	}
@@ -163,11 +150,11 @@ public:
 		}
 	}
 
-	int numFingers()
+	int numFingers() const
 	{
 		return sample[0].frame.size();
 	}
-	void printSample()
+	void printSample() const
 	{
 		unsigned int i = sample.size();
 		cout << "Size: " << i << endl;
@@ -192,36 +179,36 @@ public:
 	/**
 	 * Number of fingers in the last frame
 	 */
-	size_t lastFrameSize()
+	size_t lastFrameSize() const
 	{
-		if(sample.size() <= 0)
+		if(sample.empty())
 			return 0;
-		return sample[sample.size() - 1].size();
+		return sample.back().size();
 	}
 
-	size_t size()
+	size_t size() const
 	{
 		return sample.size();
 	}
 
-	vector<vector<double> > transform()
+	vector<vector<double> > transform() const
 	{
 		vector<vector<double> > transformed;
 		for(size_t i = 0; i < sample.size(); i++)
 		{
-			vector<double> tempT  = sample.at(i).transform();
+			vector<double> tempT  = sample[i].transform();
 			transformed.push_back(tempT);
 		}
 		return transformed;
 
 	}
 
-	bool isStatic(int numFrames)
+	bool checkIfStaticAndTrimFrames(int numFrames)
 	{
-		return isStatic(move_tolerance, numFrames);
+		return checkIfStaticAndTrim(move_tolerance, numFrames);
 	}
 
-	bool isStatic(double tolerance, unsigned int numFrames)
+	bool checkIfStaticAndTrim(double tolerance, unsigned int numFrames)
 	{
 		//iterate through frames, check if all points are within tolerance.
 		if(sample.size() < numFrames)
@@ -242,11 +229,11 @@ public:
 		return isStatic;
 	}
 
-	bool isOnlyStatic()
+	bool checkIfOnlyStaticAndTrim()
 	{
-		if(sample.size() == 0)
+		if(sample.empty())
 			return false;
-		bool result = isStatic(sample.size());
+		bool result = checkIfStaticAndTrimFrames(sample.size());
 		if(result)
 			cout << "Sample is only Static" << endl;
 		return result;

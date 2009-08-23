@@ -46,7 +46,7 @@ public:
 		{
 			//We require atleast 5 frames to classify a gesture.
 			//Check if the gestures has no movement to avoid noise.
-			if(currGestureSegment.isOnlyStatic() || currGestureSegment.size() < 10)
+			if(currGestureSegment.checkIfOnlyStaticAndTrim() || currGestureSegment.size() < 10)
 			{
 				cout << "Ignoring Sample: Hasn't moved" << endl;
 				return result;

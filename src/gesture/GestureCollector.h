@@ -84,7 +84,7 @@ public:
 	 */
 	bool sampleIsNowStatic()
 	{
-		return currGestureSegment.isStatic(10);
+		return currGestureSegment.checkIfStaticAndTrimFrames(10);
 	}
 
 	/**
@@ -92,7 +92,7 @@ public:
 	 */
 	bool sampleIsOnlyStatic()
 	{
-		return currGestureSegment.isOnlyStatic();
+		return currGestureSegment.checkIfOnlyStaticAndTrim();
 	}
 	size_t sampleSize()
 	{

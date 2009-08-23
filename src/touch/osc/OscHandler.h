@@ -42,7 +42,7 @@ public:
 	OscHandler()
 	{
 		cout << "Initing osc streams" << endl;
-		initOutStream();
+		outStream = new osc::OutboundPacketStream(buffer, OUTPUT_BUFFER_SIZE);
 		gestrSampleStart = false;
 	}
 
@@ -76,7 +76,7 @@ public:
 			gestrFrame.clear();
 		}
 		else
-			cout << "MsgParseError";
+			cout << "Unsupported message: " << smpl << endl;
 
 	}
 
@@ -230,10 +230,7 @@ public:
 
 private:
 	typedef map<string, vector<double> > paramValMapT;
-	void initOutStream()
-	{
-		outStream = new osc::OutboundPacketStream(buffer, OUTPUT_BUFFER_SIZE);
-	}
+
 
 	void sendStream()
 	{
@@ -350,7 +347,7 @@ private:
 		if (!outStream->IsBundleInProgress())
 			*outStream << osc::BeginBundleImmediate;
 
-		BOOST_FOREACH(paramValMapT::value_type &namedParamValPair, namedParams)
+		BOOST_FOREACH(const paramValMapT::value_type &namedParamValPair, namedParams)
 		{
 			*outStream << osc::BeginMessage("/gestr/action");
 			*outStream << "param_update";
