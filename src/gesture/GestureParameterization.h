@@ -105,7 +105,6 @@ public:
 		double dy = (frame[0].y - frame[1].y);
 		double dist = sqrt(dx*dx + dy*dy);
 		result.push_back(dist);
-		cout << "Dist Param: " << dist << endl;
 		return result;
 	}
 };
@@ -152,28 +151,26 @@ class gesture_parameterization
 {
 public:
 	typedef pair<string, string> namedPairT;
-	typedef pair<string, vector<double> > namedParamValT;
-	typedef vector<namedPairT> namedParamVectorT;
+	typedef pair<string, vector<double> > namedParamValPairT;
+	typedef map<string, vector<double> > namedParamValMapT;
+	typedef vector<namedParamValPairT> namedParamVectorT;
 	typedef pair<string, gesture_parameter> paramPairT;
 	typedef boost::ptr_map<string, gesture_parameter> namedParamMapT;
 
-	namedParamMapT namedParamsMap;
+	namedParamMapT 	namedParamsMap;
+	namedParamValMapT 	prevVals;
+	bool 			delta;
 
-	gesture_parameterization(){}
+	gesture_parameterization()
+	:delta(false)
+	{}
 
 	gesture_parameterization(namedPairT namedPair)
+	: delta(false)
 	{
 		addParameter(namedPair);
 	}
 
-	gesture_parameterization(namedParamVectorT namedParamStrings)
-	{
-		//Each string is a parameter.
-		BOOST_FOREACH(namedPairT namedPair, namedParamStrings)
-		{
-			addParameter(namedPair);
-		}
-	}
 
 	void addParameter(namedPairT namedPair)
 	{
@@ -185,7 +182,15 @@ public:
 		boost::tokenizer<boost::char_separator<char> > 				tok(paramString, sep);
 		boost::tokenizer<boost::char_separator<char> >::iterator 	token=tok.begin();
 
+
 		//Instantiate the appropriate parameter class and add to the params vector.
+
+		if(*token == "delta") //Caches previous value and sends difference only
+		{
+			delta = true;
+			token++;
+		}
+
 		if(*token == "fing_dist")
 		{
 			int fing_index1 = boost::lexical_cast<int>(*++token);
@@ -212,13 +217,34 @@ public:
 	/**
 	 * Parameterization call
 	 */
-	map<string, vector<double> > operator()(ContactSetFrame & contactFrame)
+	namedParamValMapT operator()(ContactSetFrame & contactFrame)
 	{
-		map<string, vector<double> > resultMap;
+		namedParamValMapT resultMap;
 
 		for( namedParamMapT::iterator param = namedParamsMap.begin(), e = namedParamsMap.end(); param != e; ++param )
 		{
-			resultMap.insert(namedParamValT(param->first, param->second->operator()(contactFrame)));
+			string 				paramName 		= param->first;
+			gesture_parameter*	parameter 		= param->second;
+			vector<double> 		currParamValues = parameter->operator()(contactFrame);
+			namedParamValPairT 	paramVals(paramName, currParamValues );
+			if(delta)
+			{
+				if(prevVals.empty())
+					prevVals.insert(paramVals);
+				else
+				{
+					vector<double> deltaVals;
+					vector<double> prevParamValues = prevVals[paramName];
+					for(size_t i = 0; i < prevParamValues.size(); i++) //prevParamValues and currParamValues should have same size.
+						deltaVals.push_back(currParamValues[i] - prevParamValues[i]);
+
+					paramVals.second = deltaVals; //Set result to the difference in vals;
+					prevVals[paramName] = currParamValues;
+				}
+
+			}
+
+			resultMap.insert(paramVals);
 		}
 		return resultMap;
 	}

@@ -249,6 +249,7 @@ public:
     {
     	currentParameterization = 0;
     	reorderFilter 			= 0;
+    	paused 					= false;
     }
     bool isParameterizationPaused() const
     {
